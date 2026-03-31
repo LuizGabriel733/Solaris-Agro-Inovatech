@@ -1,75 +1,58 @@
-🚀 Tutorial: Configuração do App UVision (Bluetooth Low Energy)
+🚀 Tutorial: Configuração do App UVision (BLE)
 Este guia orienta desde a preparação das máquinas até a execução do app em dispositivos físicos usando Expo Development Builds.
 1. Preparação do Ambiente (Todos os Integrantes)
 Antes de começar, todos devem garantir que as ferramentas base estejam instaladas.
-Instalações Necessárias:
 Node.js (LTS): Motor para rodar o Javascript.
 VS Code: Editor de código oficial.
-Git: Para controle de versão e compartilhamento.
-Instalação da CLI do Expo:
-Abra o terminal do VS Code e execute:
+Git: Para controle de versão.
+Instalação da CLI do Expo: Abra o terminal do VS Code e execute:
 bash
 npm install -g eas-cli
 Use o código com cuidado.
 
+Obs: Se estiver em rede privada, o Firewall pode bloquear o Node.js. Permita o acesso em redes privadas nas configurações de segurança.
 2. Configuração do Projeto (Apenas um Integrante)
-Apenas um membro cria a estrutura base e sobe para o GitHub.
-A. Instalação de Dependências
-Dentro da pasta do projeto (uvision-app), execute:
+Instalação de Dependências: Dentro da pasta do projeto, execute:
 bash
 npx expo install react-native-ble-plx expo-dev-client
 Use o código com cuidado.
 
-B. Configuração do Bluetooth (app.json)
-Abra o arquivo app.json e adicione os plugins necessários dentro da chave "expo":
+Configuração do Bluetooth (app.json): Adicione os plugins na chave "expo":
 json
 "plugins": [
-  [
-    "react-native-ble-plx",
-    {
-      "isBackgroundEnabled": false,
-      "modes": ["peripheral", "central"],
-      "bluetoothAlwaysPermission": "O app precisa de Bluetooth para ler o sensor UV."
-    }
-  ],
+  ["react-native-ble-plx", { "isBackgroundEnabled": false, "modes": ["peripheral", "central"] }],
   "expo-dev-client"
 ]
 Use o código com cuidado.
 
-C. Implementação do Código
-Substitua o conteúdo do seu App.js pelo código de lógica de busca (Scan) de dispositivos Bluetooth que foi desenvolvido.
+Implementação: Substitua o App.js pela lógica de busca (Scan) desenvolvida.
 3. Gerando o App de Teste (Development Build)
-Como o Bluetooth exige permissões nativas, não funciona no Expo Go comum. Precisamos criar um instalador próprio.
+Como o Bluetooth exige permissões nativas, ele não funciona no Expo Go comum.
 Criar conta: Cadastre-se em expo.dev.
-Login no Terminal:
-bash
-npx eas login
-Use o código com cuidado.
-
-Gerar o APK de Desenvolvimento:
+Login no Terminal: npx eas login
+Gerar o APK:
 bash
 npx eas build --profile development --platform android
 Use o código com cuidado.
 
-Nota: Aceite as sugestões de "Android Package Name" (ex: com.uvision.app).
-Distribuição: Ao final (aprox. 10 min), o terminal exibirá um Link de Download.
-Envie este link para todos os membros da equipe.
-Todos devem baixar e instalar o APK em seus celulares Android físicos.
-4. Fluxo de Trabalho em Equipe (Dia a Dia)
-Com o "App de Teste" já instalado nos celulares, o desenvolvimento segue este fluxo:
-Sincronização:
-O responsável sobe o código para o GitHub.
-O colega baixa o código, abre no VS Code e roda npm install para instalar as bibliotecas.
-Execução:
-Para testar as alterações, o desenvolvedor digita:
-bash
-npx expo start --dev-client
+Distribuição: Ao final, o terminal exibirá um Link de Download. Envie para a equipe instalar o APK nos celulares Android físicos.
+4. Execução: QR Code vs. Cabo USB
+Após rodar o comando npx expo start --dev-client, um QR Code aparecerá no terminal. Escolha o método de conexão:
+A. Em Rede Particular (Wi-Fi de Casa)
+Se o PC e o celular estiverem no mesmo Wi-Fi:
+Escaneie o QR Code do terminal com a câmera do celular.
+O app UVision (APK instalado) abrirá e sincronizará com o seu PC instantaneamente.
+B. Em Rede Pública ou Restrita (Faculdade/Café) - Via Cabo USB
+Redes públicas bloqueiam a conexão direta. Use o Cabo USB para "pular" a rede:
+Ativar Celular: Vá em Configurações > Sobre o telefone e clique 7 vezes no "Número da Versão". Nas Opções do Desenvolvedor, ative a Depuração USB.
+Conectar ao PC: Conecte o cabo e aceite a permissão de confiança no celular.
+Criar a Ponte (ADB): No PowerShell do PC, execute o comando para redirecionar a porta:
+powershell
+& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" reverse tcp:8081 tcp:8081
 Use o código com cuidado.
 
-Conexão Magicamente:
-Abra o App de Teste (aquele instalado via APK) no celular.
-Escaneie o QR Code que apareceu no terminal.
-Resultado: Qualquer alteração feita no código do PC atualizará instantaneamente no celular, com acesso total ao Bluetooth!
+Abrir o App: Abra manualmente o app UVision no celular. Ele buscará o código do PC através do cabo. Se não carregar, selecione "Enter URL manually" no app e digite http://localhost:8081.
+Dica Final: Se o comando adb não for reconhecido, adicione a pasta platform-tools do Android SDK às Variáveis de Ambiente (PATH) do Windows para usar apenas adb reverse no futuro.
 
 # Welcome to your Expo app 👋
 
