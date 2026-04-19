@@ -1,14 +1,31 @@
-import { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { BleManager } from 'react-native-ble-plx';
-
-const manager = new BleManager();
+import { useEffect, useRef, useState } from 'react';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import type { BleManager as BleManagerType } from 'react-native-ble-plx';
 
 export default function Index() {
   const [status, setStatus] = useState("Aguardando...");
+  const managerRef = useRef<BleManagerType | null>(null);
 
-  const conectarBluetooth = () => {
+  useEffect(() => {
+    return () => {
+      const manager = managerRef.current as { destroy?: () => void } | null;
+      manager?.destroy?.();
+      managerRef.current = null;
+    };
+  }, []);
+
+  const conectarBluetooth = async () => {
+    // [Implementacao por Arthur Junior] Evita erro no servidor/web: BLE nao existe em SSR/navegador.
+    if (Platform.OS === 'web') {
+      setStatus('Bluetooth indisponivel no navegador (use Android/iOS com development build).');
+      return;
+    }
+
     setStatus("Buscando Arduino...");
+    const { BleManager } = await import('react-native-ble-plx');
+    const manager = managerRef.current ?? new BleManager();
+    managerRef.current = manager;
+
     manager.startDeviceScan(null, null, (error, device) => {
       if (error) {
         setStatus("Erro: " + error.message);
