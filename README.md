@@ -43,7 +43,7 @@ Após rodar o comando npx expo start --dev-client, um QR Code aparecerá no term
 A. Em Rede Particular (Wi-Fi de Casa)
 Se o PC e o celular estiverem no mesmo Wi-Fi:
 Escaneie o QR Code do terminal com a câmera do celular.
-O app UVision (APK instalado) abrirá e sincronizará com o seu PC instantaneamente.
+O app Solaris Agro (APK instalado) abrirá e sincronizará com o seu PC instantaneamente.
 B. Em Rede Pública ou Restrita (Faculdade/Café) - Via Cabo USB
 Redes públicas bloqueiam a conexão direta. Use o Cabo USB para "pular" a rede:
 Ativar Celular: Vá em Configurações > Sobre o telefone e clique 7 vezes no "Número da Versão". Nas Opções do Desenvolvedor, ative a Depuração USB.
@@ -53,7 +53,7 @@ powershell
 & "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" reverse tcp:8081 tcp:8081
 Use o código com cuidado.
 
-Abrir o App: Abra manualmente o app UVision no celular. Ele buscará o código do PC através do cabo. Se não carregar, selecione "Enter URL manually" no app e digite http://localhost:8081.
+Abrir o App: Abra manualmente o app Solaris Agro no celular. Ele buscará o código do PC através do cabo. Se não carregar, selecione "Enter URL manually" no app e digite http://localhost:8081.
 Dica Final: Se o comando adb não for reconhecido, adicione a pasta platform-tools do Android SDK às Variáveis de Ambiente (PATH) do Windows para usar apenas adb reverse no futuro.
 
 # Welcome to your Expo app 👋
