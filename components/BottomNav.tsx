@@ -11,15 +11,15 @@ export function BottomNav({ currentRoute }: BottomNavProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const handleNavigation = (route: '/' | '/historico') => {
+  const handleNavigation = (route: '/' | '/historico' | '/alertas' | '/settings') => {
     router.push(route);
   };
 
-  const isActive = (route: string) => currentRoute === route;
+  const isActive = (route: '/' | '/historico' | '/alertas' | '/settings') => currentRoute === route;
 
   return (
     <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.navItem}
         onPress={() => handleNavigation('/')}
       >
@@ -47,14 +47,32 @@ export function BottomNav({ currentRoute }: BottomNavProps) {
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.navItem}>
-        <Feather name="alert-circle" size={18} color="#9AA7B7" />
-        <Text style={styles.navText}>Alertas</Text>
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => handleNavigation('/alertas')}
+      >
+        <Feather
+          name="alert-circle"
+          size={18}
+          color={isActive('/alertas') ? '#1A5AD7' : '#9AA7B7'}
+        />
+        <Text style={[styles.navText, isActive('/alertas') && styles.navTextActive]}>
+          Alertas
+        </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.navItem}>
-        <Feather name="settings" size={18} color="#9AA7B7" />
-        <Text style={styles.navText}>Config.</Text>
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => handleNavigation('/settings')}
+      >
+        <Feather
+          name="settings"
+          size={18}
+          color={isActive('/settings') ? '#1A5AD7' : '#9AA7B7'}
+        />
+        <Text style={[styles.navText, isActive('/settings') && styles.navTextActive]}>
+          Config.
+        </Text>
       </TouchableOpacity>
     </View>
   );
