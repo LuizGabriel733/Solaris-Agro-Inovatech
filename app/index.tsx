@@ -31,7 +31,7 @@ export default function HomeScreen() {
         <View style={styles.alertCard}>
           <Feather name="alert-triangle" size={20} color="#E67E22" />
           <Text style={styles.alertText}>
-            Radiação UV alta pode prejudicar o cultivo neste horário
+            Radiação UV alta pode prejudicar o cultivo neste horário teste numero 100bnasduba
           </Text>
         </View>
 
