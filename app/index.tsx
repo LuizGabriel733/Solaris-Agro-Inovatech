@@ -1,92 +1,130 @@
-import { Feather } from '@expo/vector-icons'; // Ícones inclusos no Expo
+import { Feather } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react'; // Adicionado useState
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BottomNav } from '../components/BottomNav';
+import { HistoryChartCard } from '../components/history/HistoryChartCard';
+import { TODAY_DATA } from '../components/history/data';
 
 export default function HomeScreen() {
   const pathname = usePathname();
+  
+  // ESTADO: Controla qual ponto do gráfico está selecionado (padrão é o último)
+  const [selectedIndex, setSelectedIndex] = useState(TODAY_DATA.length - 1);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.contentWrapper}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
-        {/* Header Azul */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>Solaris Agro</Text>
-            <View style={styles.statusBadge}>
-              <View style={styles.dot} />
-              <Text style={styles.statusText}>Sensor conectado</Text>
-            </View>
-          </View>
-          <TouchableOpacity style={styles.syncButton}>
-            <Feather name="refresh-cw" size={16} color="white" />
-            <Text style={styles.syncText}>Sincronizar</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Alerta de Radiação */}
-        <View style={styles.alertCard}>
-          <Feather name="alert-triangle" size={20} color="#E67E22" />
-          <Text style={styles.alertText}>
-            Radiação UV alta pode prejudicar o cultivo neste horário
-          </Text>
-        </View>
-
-        {/* Card Principal - Índice UV */}
-        <View style={styles.mainCard}>
-          <View style={styles.mainCardHeader}>
-            <Text style={styles.cardTitle}>Índice UV Atual</Text>
-            <Feather name="sun" size={24} color="#F1C40F" />
-          </View>
           
-          <Text style={styles.uvValue}>7</Text>
-          <View style={styles.badgeAtencao}>
-            <Text style={styles.badgeText}>Atenção</Text>
+          {/* Header Azul */}
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.headerTitle}>Solaris Agro</Text>
+              <View style={styles.statusBadge}>
+                <View style={styles.dot} />
+                <Text style={styles.statusText}>Sensor conectado</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.syncButton}>
+              <Feather name="refresh-cw" size={16} color="white" />
+              <Text style={styles.syncText}>Sincronizar</Text>
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Alta incidência de UV-B</Text>
-            <Text style={styles.impactValue}>Impacto no cultivo: <Text style={{color: '#E67E22'}}>Moderado</Text></Text>
-          </View>
-
-          {/* Espaço para o Gráfico (Placeholder) */}
-          <View style={styles.chartPlaceholder}>
-             <Text style={styles.placeholderText}>[ Gráfico de Linha aqui ]</Text>
-          </View>
-        </View>
-
-        {/* Grid de Cards Menores */}
-        <View style={styles.row}>
-          <View style={[styles.smallCard, { marginRight: 10 }]}>
-            <Feather name="sun" size={20} color="#E67E22" />
-            <Text style={styles.smallCardTitle}>Exposição UV</Text>
-            <Text style={styles.smallCardValue}>4.5h</Text>
-            <Text style={styles.smallCardSub}>Alta radiação</Text>
-          </View>
-          <View style={styles.smallCard}>
-            <Feather name="trending-up" size={20} color="#3498DB" />
-            <Text style={styles.smallCardTitle}>Média semanal</Text>
-            <Text style={styles.smallCardValue}>6.2</Text>
-            <Text style={styles.smallCardSub}>Índice UV</Text>
-          </View>
-        </View>
-
-        {/* Recomendação Agrícola */}
-        <View style={styles.recommendationCard}>
-          <View style={styles.blueBar} />
-          <View>
-            <Text style={styles.recommendationTitle}>Recomendação Agrícola</Text>
-            <Text style={styles.recommendationText}>
-              Monitorar o cultivo. Considere sombreamento parcial durante picos de UV.
+          {/* Alerta de Radiação */}
+          <View style={styles.alertCard}>
+            <Feather name="alert-triangle" size={20} color="#E67E22" />
+            <Text style={styles.alertText}>
+              Radiação UV alta pode prejudicar o cultivo neste horário
             </Text>
           </View>
-        </View>
 
-      </ScrollView>
-      <BottomNav currentRoute={pathname} />
+          {/* Card Principal - Índice UV */}
+          <View style={styles.mainCard}>
+            <View style={styles.mainCardHeader}>
+              <Text style={styles.cardTitle}>Índice UV Atual</Text>
+              <Feather name="sun" size={24} color="#F1C40F" />
+            </View>
+            
+            <Text style={styles.uvValue}>7</Text>
+            <View style={styles.badgeAtencao}>
+              <Text style={styles.badgeText}>Atenção</Text>
+            </View>
+
+            {/* Ajuste no app/index.tsx */}
+            <View style={styles.infoRow}>
+              <View style={{ width: '100%' }}>
+                <Text style={styles.label}>Alta incidência de UV-B</Text>
+                {/* Removido o fontWeight: 'bold' e colocado em uma nova linha */}
+                <Text style={[styles.impactValue, { fontWeight: 'normal', marginTop: 4 }]}>
+                Impacto no cultivo: <Text style={{ color: '#F1C40F' }}>Moderado</Text>
+                </Text>
+              </View>
+            </View>
+
+            {/* Área do Gráfico - Ajustada para aceitar cliques */}
+            <View 
+              style={{ width: '100%', marginTop: 10, zIndex: 10 }} 
+              pointerEvents="box-none"
+            >
+              <View style={{ height: 1, backgroundColor: '#E0E0E0', marginVertical: 15 }} />
+              
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
+                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Feather name="map-pin" size={12} color="#7F8C8D" />
+                    <Text style={{ color: '#7F8C8D', fontSize: 11, marginLeft: 4 }}>Leitura local</Text>
+                 </View>
+                 <Text style={{ color: '#7F8C8D', fontSize: 11 }}>
+                   {/* Mostra o horário do ponto selecionado ou o atual */}
+                   Atualizado: {TODAY_DATA[selectedIndex]?.label || '16:10'}
+                 </Text>
+              </View>
+
+              <HistoryChartCard
+                selectedPeriod="today"
+                data={TODAY_DATA}
+                selectedPointIndex={selectedIndex}
+                onSelectPointIndex={(index) => setSelectedIndex(index)} // Atualiza o estado ao clicar
+                chartWidth={290} 
+                chartHeight={100} 
+                maxDataValue={12}
+                hideHeader={true}
+                lineColor="#F1C40F"
+                hideCard={true}
+              />
+            </View>
+          </View>
+
+          {/* Grid de Cards Menores */}
+          <View style={styles.row}>
+            <View style={[styles.smallCard, { marginRight: 10 }]}>
+              <Feather name="sun" size={20} color="#E67E22" />
+              <Text style={styles.smallCardTitle}>Exposição UV</Text>
+              <Text style={styles.smallCardValue}>4.5h</Text>
+              <Text style={styles.smallCardSub}>Alta radiação</Text>
+            </View>
+            <View style={styles.smallCard}>
+              <Feather name="trending-up" size={20} color="#3498DB" />
+              <Text style={styles.smallCardTitle}>Média semanal</Text>
+              <Text style={styles.smallCardValue}>6.2</Text>
+              <Text style={styles.smallCardSub}>Índice UV</Text>
+            </View>
+          </View>
+
+          {/* Recomendação Agrícola */}
+          <View style={styles.recommendationCard}>
+            <View style={styles.blueBar} />
+            <View>
+              <Text style={styles.recommendationTitle}>Recomendação Agrícola</Text>
+              <Text style={styles.recommendationText}>
+                Monitorar o cultivo. Considere sombreamento parcial durante picos de UV.
+              </Text>
+            </View>
+          </View>
+
+        </ScrollView>
+        <BottomNav currentRoute={pathname} />
       </View>
     </SafeAreaView>
   );
@@ -115,15 +153,38 @@ const styles = StyleSheet.create({
   alertCard: { backgroundColor: '#FFF3E0', padding: 15, borderRadius: 12, flexDirection: 'row', alignItems: 'center', marginBottom: 20, borderWidth: 1, borderColor: '#FFE0B2' },
   alertText: { color: '#E67E22', fontSize: 13, marginLeft: 10, flex: 1 },
 
-  mainCard: { backgroundColor: 'white', padding: 20, borderRadius: 20, alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
+  mainCard: { 
+    backgroundColor: 'white', 
+    padding: 15, 
+    borderRadius: 20, 
+    alignItems: 'center', 
+    elevation: 3, 
+    width: '100%',
+    overflow: 'hidden',
+    shadowColor: '#000', 
+    shadowOpacity: 0.1, 
+    shadowRadius: 10 
+  },
   mainCardHeader: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 10 },
   cardTitle: { fontSize: 18, fontWeight: '600', color: '#333' },
   uvValue: { fontSize: 64, fontWeight: 'bold', color: '#2C3E50' },
   badgeAtencao: { backgroundColor: '#FEF9E7', paddingHorizontal: 20, paddingVertical: 5, borderRadius: 15, marginBottom: 15 },
   badgeText: { color: '#F1C40F', fontWeight: 'bold' },
-  infoRow: { width: '100%', marginTop: 10 },
-  label: { color: '#7F8C8D', fontSize: 13, marginBottom: 8 },
-  impactValue: { color: '#2C3E50', fontSize: 13, fontWeight: '600' },
+infoRow: { 
+  width: '100%', 
+  marginTop: 10, 
+  flexDirection: 'column', // Força os textos a ficarem um embaixo do outro
+  alignItems: 'flex-start' // Alinha os textos à esquerda
+},
+label: { 
+  color: '#7F8C8D', 
+  fontSize: 13 
+},
+impactValue: { 
+  color: '#2C3E50', 
+  fontSize: 13 
+  // Removido o fontWeight: '600' daqui para tirar o negrito global
+},
   
   row: { flexDirection: 'row', marginTop: 20 },
   smallCard: { flex: 1, backgroundColor: 'white', padding: 15, borderRadius: 20, elevation: 2 },
@@ -135,7 +196,4 @@ const styles = StyleSheet.create({
   blueBar: { width: 4, backgroundColor: '#3498DB', borderRadius: 2, marginRight: 15 },
   recommendationTitle: { fontWeight: 'bold', color: '#2980B9', marginBottom: 5 },
   recommendationText: { color: '#5D6D7E', fontSize: 13, lineHeight: 18 },
-  
-  chartPlaceholder: { width: '100%', height: 100, backgroundColor: '#f9f9f9', marginTop: 20, justifyContent: 'center', alignItems: 'center', borderRadius: 10, borderStyle: 'dashed', borderWidth: 1, borderColor: '#ccc' },
-  placeholderText: { color: '#BDC3C7', fontSize: 13 },
 });
