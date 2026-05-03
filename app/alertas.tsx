@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import * as Haptics from 'expo-haptics';
-import * as Notifications from 'expo-notifications';
 import { usePathname } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
@@ -47,32 +46,47 @@ export default function AlertsScreen() {
   const [uvHistory, setUvHistory] = useState<UVDataPoint[]>([]);
   const [activeAlerts, setActiveAlerts] = useState<Alert[]>([]);
   const [lastAlertTimes, setLastAlertTimes] = useState<{ [key: string]: number }>({});
+  const [notificationsModule, setNotificationsModule] = useState<any>(null);
   const debounceTimer = useRef<any>(null);
 
   // Estados para rastrear condições
   const [highRadiationPeriod, setHighRadiationPeriod] = useState(false);
   const [recoveryStartTime, setRecoveryStartTime] = useState<number | null>(null);
 
-  // Configurar notificações
+  // Configurar notificações dinamicamente se disponível
   useEffect(() => {
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-        shouldShowBanner: true,
-        shouldShowList: true,
-      }),
-    });
+    let active = true;
 
-    // Solicitar permissões
-    const requestPermissions = async () => {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        console.warn('Permissões de notificação não concedidas');
+    const loadNotifications = async () => {
+      try {
+        const Notifications = await import('expo-notifications');
+        if (!active) return;
+
+        setNotificationsModule(Notifications);
+        Notifications.setNotificationHandler({
+          handleNotification: async () => ({
+            shouldShowAlert: true,
+            shouldPlaySound: true,
+            shouldSetBadge: false,
+            shouldShowBanner: true,
+            shouldShowList: true,
+          }),
+        });
+
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status !== 'granted') {
+          console.warn('Permissões de notificação não concedidas');
+        }
+      } catch (error) {
+        console.warn('expo-notifications não disponível ou módulo nativo ausente:', error);
       }
     };
-    requestPermissions();
+
+    loadNotifications();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Função auxiliar para verificar alertas após debounce
@@ -88,8 +102,8 @@ export default function AlertsScreen() {
           icon: 'warning-outline',
           title: `UV alto às ${new Date(now).toLocaleTimeString()} – risco ao cultivo`,
           time: new Date(now).toLocaleTimeString(),
-          color: '#D32F2F',
-          bgColor: '#FFEBEE',
+          color: '#FDB813',
+          bgColor: '#F5F5DC',
           isNew: true,
         });
         setLastAlertTimes(prev => ({ ...prev, [alertKey]: now }));
@@ -107,8 +121,8 @@ export default function AlertsScreen() {
           icon: 'leaf-outline',
           title: 'Saúde do Solo: Exposição prolongada detectada',
           time: new Date(now).toLocaleTimeString(),
-          color: '#F57C00',
-          bgColor: '#FFF3E0',
+          color: '#4A9943',
+          bgColor: '#F5F5DC',
           isNew: true,
         });
         setLastAlertTimes(prev => ({ ...prev, [alertKey]: now }));
@@ -124,8 +138,8 @@ export default function AlertsScreen() {
         icon: 'flash-outline',
         title: 'UV Extremo: Interrupção de fotossíntese e dano celular',
         time: new Date(now).toLocaleTimeString(),
-        color: '#B71C1C',
-        bgColor: '#FFCDD2',
+        color: '#FDB813',
+        bgColor: '#F5F5DC',
         isNew: true,
       };
     } else if (value >= 8) {
@@ -134,8 +148,8 @@ export default function AlertsScreen() {
         icon: 'sunny-outline',
         title: 'UV Muito Alto: Necessidade de cobertura/sombreamento',
         time: new Date(now).toLocaleTimeString(),
-        color: '#E65100',
-        bgColor: '#FFE0B2',
+        color: '#00CED1',
+        bgColor: '#F5F5DC',
         isNew: true,
       };
     }
@@ -159,8 +173,8 @@ export default function AlertsScreen() {
             icon: 'checkmark-circle-outline',
             title: 'Condições favoráveis: Seguro para aplicação de insumos',
             time: new Date(now).toLocaleTimeString(),
-            color: '#1976D2',
-            bgColor: '#E3F2FD',
+            color: '#4A9943',
+            bgColor: '#F5F5DC',
             isNew: true,
           });
           setLastAlertTimes(prev => ({ ...prev, [alertKey]: now }));
@@ -178,21 +192,27 @@ export default function AlertsScreen() {
 
       // Enviar notificações push e vibração para novos alertas
       newAlerts.forEach(async (alert) => {
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: 'Alerta UV - Solaris Agro',
-            body: alert.title,
-            sound: 'default',
-            priority: Notifications.AndroidNotificationPriority.HIGH,
-          },
-          trigger: null, // Enviar imediatamente
-        });
+        try {
+          if (notificationsModule?.scheduleNotificationAsync) {
+            await notificationsModule.scheduleNotificationAsync({
+              content: {
+                title: 'Alerta UV - Solaris Agro',
+                body: alert.title,
+                sound: 'default',
+                priority: notificationsModule.AndroidNotificationPriority?.HIGH,
+              },
+              trigger: null,
+            });
+          }
 
-        // Vibração
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          // Vibração
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        } catch (error) {
+          console.warn('Erro ao enviar notificação:', error);
+        }
       });
     }
-  }, [uvThreshold, lastAlertTimes, highRadiationPeriod, recoveryStartTime]);
+  }, [uvThreshold, lastAlertTimes, highRadiationPeriod, recoveryStartTime, notificationsModule]);
 
   // Função para avaliar dados UV e disparar alertas
   const evaluateUVData = useCallback((value: number) => {
@@ -269,7 +289,7 @@ export default function AlertsScreen() {
               <Text style={styles.label}>Alertas ativos</Text>
               <Text style={styles.subLabel}>Receber notificações</Text>
             </View>
-            <Switch value={alertsEnabled} onValueChange={setAlertsEnabled} trackColor={{ true: '#2563EB' }} />
+            <Switch value={alertsEnabled} onValueChange={setAlertsEnabled} trackColor={{ true: '#4A9943' }} />
           </View>
 
           <View style={styles.sliderSection}>
@@ -282,9 +302,9 @@ export default function AlertsScreen() {
                 step={1}
                 value={uvThreshold}
                 onValueChange={setUvThreshold}
-                minimumTrackTintColor="#2563EB"
-                maximumTrackTintColor="#D1D5DB"
-                thumbTintColor="#2563EB"
+                minimumTrackTintColor="#4A9943"
+                maximumTrackTintColor="#F5F5DC"
+                thumbTintColor="#66B032"
               />
               <View style={styles.uvValueBox}>
                 <Text style={styles.uvValueText}>{uvThreshold}</Text>
@@ -298,14 +318,14 @@ export default function AlertsScreen() {
               <Text style={styles.label}>Alertas UV-B específicos</Text>
               <Text style={styles.subLabel}>Notificar sobre radiação UV-B elevada</Text>
             </View>
-            <Switch value={uvbAlerts} onValueChange={setUvbAlerts} trackColor={{ true: '#2563EB' }} />
+            <Switch value={uvbAlerts} onValueChange={setUvbAlerts} trackColor={{ true: '#4A9943' }} />
           </View>
         </View>
 
         {/* Nota Importante */}
         <View style={styles.noteCard}>
           <Text style={styles.noteText}>
-            <Ionicons name="flash" size={14} color="#F57C00" /> 
+            <Ionicons name="flash" size={14} color="#FDB813" /> 
             <Text style={{ fontWeight: 'bold' }}> Importante: </Text>
             A radiação UV-B é particularmente prejudicial às plantas, podendo causar estresse celular...
           </Text>
@@ -320,12 +340,12 @@ export default function AlertsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   contentWrapper: { flex: 1 },
-  header: { backgroundColor: '#1E40AF', padding: 25, borderBottomLeftRadius: 25, borderBottomRightRadius: 25 },
+  header: { backgroundColor: '#4A9943', padding: 25, borderBottomLeftRadius: 25, borderBottomRightRadius: 25 },
   headerTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerTitle: { fontSize: 24, fontWeight: 'bold', color: 'white' },
   badge: { backgroundColor: '#EF4444', borderRadius: 10, paddingHorizontal: 6, height: 20, justifyContent: 'center' },
   badgeText: { color: 'white', fontSize: 12, fontWeight: 'bold' },
-  headerSubtitle: { color: '#BFDBFE', marginTop: 5 },
+  headerSubtitle: { color: '#F5F5DC', marginTop: 5 },
   scrollContent: { padding: 20 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 15 },
   sectionTitleText: { fontSize: 16, fontWeight: 'bold', color: '#1E293B' },
@@ -334,7 +354,7 @@ const styles = StyleSheet.create({
   alertTextContainer: { flex: 1 },
   alertTitle: { fontSize: 14, fontWeight: '500' },
   alertTime: { fontSize: 12, color: '#64748B', marginTop: 2 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#2563EB' },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#66B032' },
   configCard: { backgroundColor: 'white', borderRadius: 20, padding: 20, marginTop: 10, elevation: 2 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 10 },
   label: { fontSize: 15, fontWeight: '600', color: '#1E293B' },
@@ -342,9 +362,9 @@ const styles = StyleSheet.create({
   sliderSection: { marginVertical: 15 },
   sliderRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   uvValueBox: { backgroundColor: '#DBEafe', padding: 8, borderRadius: 8, width: 40, alignItems: 'center' },
-  uvValueText: { color: '#1E40AF', fontWeight: 'bold' },
+  uvValueText: { color: '#4A9943', fontWeight: 'bold' },
   infoText: { fontSize: 12, color: '#64748B', marginTop: 5 },
-  noteCard: { backgroundColor: '#FFF7ED', padding: 15, borderRadius: 12, marginTop: 20, borderLeftWidth: 4, borderLeftColor: '#F57C00' },
+  noteCard: { backgroundColor: '#F5F5DC', padding: 15, borderRadius: 12, marginTop: 20, borderLeftWidth: 4, borderLeftColor: '#FDB813' },
   noteText: { fontSize: 13, color: '#9A3412', lineHeight: 18 },
   noAlertsText: { fontSize: 14, color: '#64748B', textAlign: 'center', marginVertical: 20 }
 });
