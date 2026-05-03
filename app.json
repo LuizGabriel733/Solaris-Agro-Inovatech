@@ -56,7 +56,8 @@
           ],
           "bluetoothAlwaysPermission": "O app precisa de Bluetooth para ler o sensor UV."
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,

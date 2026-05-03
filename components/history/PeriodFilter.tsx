@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   filterButtonActive: {
-    backgroundColor: '#155DFC',
+    backgroundColor: '#4A9943',
   },
   filterButtonText: {
     fontSize: 13,

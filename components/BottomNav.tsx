@@ -26,7 +26,7 @@ export function BottomNav({ currentRoute }: BottomNavProps) {
         <Feather 
           name="home" 
           size={18} 
-          color={isActive('/') ? '#1A5AD7' : '#9AA7B7'} 
+          color={isActive('/') ? '#4A9943' : '#94A3B8'} 
         />
         <Text style={[styles.navText, isActive('/') && styles.navTextActive]}>
           Início
@@ -40,7 +40,7 @@ export function BottomNav({ currentRoute }: BottomNavProps) {
         <Feather 
           name="bar-chart-2" 
           size={18} 
-          color={isActive('/historico') ? '#1A5AD7' : '#9AA7B7'} 
+          color={isActive('/historico') ? '#4A9943' : '#94A3B8'} 
         />
         <Text style={[styles.navText, isActive('/historico') && styles.navTextActive]}>
           Histórico
@@ -54,7 +54,7 @@ export function BottomNav({ currentRoute }: BottomNavProps) {
         <Feather
           name="alert-circle"
           size={18}
-          color={isActive('/alertas') ? '#1A5AD7' : '#9AA7B7'}
+          color={isActive('/alertas') ? '#4A9943' : '#94A3B8'}
         />
         <Text style={[styles.navText, isActive('/alertas') && styles.navTextActive]}>
           Alertas
@@ -68,7 +68,7 @@ export function BottomNav({ currentRoute }: BottomNavProps) {
         <Feather
           name="settings"
           size={18}
-          color={isActive('/settings') ? '#1A5AD7' : '#9AA7B7'}
+          color={isActive('/settings') ? '#4A9943' : '#94A3B8'}
         />
         <Text style={[styles.navText, isActive('/settings') && styles.navTextActive]}>
           Config.
@@ -104,6 +104,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   navTextActive: {
-    color: '#1A5AD7',
+    color: '#4A9943',
   },
 });
