@@ -31,7 +31,7 @@ export default function Index() {
         setStatus("Erro: " + error.message);
         return;
       }
-      if (device && device.name === "Solaris Agro-Sensor") { // Nome do seu Arduino
+      if (device && device.name === "Uvision-Sensor") { // Nome do seu Arduino
         manager.stopDeviceScan();
         setStatus("Conectando ao " + device.name);
         device.connect()
@@ -43,7 +43,7 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Solaris Agro</Text>
+      <Text style={styles.title}>Uvision App</Text>
       <Text style={styles.status}>{status}</Text>
       
       <TouchableOpacity style={styles.button} onPress={conectarBluetooth}>
