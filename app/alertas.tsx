@@ -1,9 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
+import * as Haptics from 'expo-haptics';
+import * as Notifications from 'expo-notifications';
 import { usePathname } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { BottomNav } from '../components/BottomNav';
+
+// Tipos para alertas e histórico
+interface UVDataPoint {
+  value: number;
+  timestamp: number;
+}
+
+interface Alert {
+  id: string;
+  icon: string;
+  title: string;
+  time: string;
+  color: string;
+  bgColor: string;
+  isNew: boolean;
+}
 
 // Componente para os Cards de Alerta
 const AlertCard = ({ icon, title, time, color, bgColor, isNew }: any) => (
@@ -25,6 +43,183 @@ export default function AlertsScreen() {
   const [uvThreshold, setUvThreshold] = useState(8);
   const [uvbAlerts, setUvbAlerts] = useState(true);
 
+  // Estados para monitoramento UV
+  const [uvHistory, setUvHistory] = useState<UVDataPoint[]>([]);
+  const [activeAlerts, setActiveAlerts] = useState<Alert[]>([]);
+  const [lastAlertTimes, setLastAlertTimes] = useState<{ [key: string]: number }>({});
+  const debounceTimer = useRef<any>(null);
+
+  // Estados para rastrear condições
+  const [highRadiationPeriod, setHighRadiationPeriod] = useState(false);
+  const [recoveryStartTime, setRecoveryStartTime] = useState<number | null>(null);
+
+  // Configurar notificações
+  useEffect(() => {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+
+    // Solicitar permissões
+    const requestPermissions = async () => {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        console.warn('Permissões de notificação não concedidas');
+      }
+    };
+    requestPermissions();
+  }, []);
+
+  // Função auxiliar para verificar alertas após debounce
+  const checkAlerts = useCallback((value: number, history: UVDataPoint[], now: number) => {
+    const newAlerts: Alert[] = [];
+
+    // 1. Gatilho de Limite de Segurança
+    if (value >= uvThreshold) {
+      const alertKey = 'threshold';
+      if (!lastAlertTimes[alertKey] || now - lastAlertTimes[alertKey] > 60000) { // Evitar repetição imediata
+        newAlerts.push({
+          id: `${alertKey}-${now}`,
+          icon: 'warning-outline',
+          title: `UV alto às ${new Date(now).toLocaleTimeString()} – risco ao cultivo`,
+          time: new Date(now).toLocaleTimeString(),
+          color: '#D32F2F',
+          bgColor: '#FFEBEE',
+          isNew: true,
+        });
+        setLastAlertTimes(prev => ({ ...prev, [alertKey]: now }));
+      }
+    }
+
+    // 2. Gatilho de Acúmulo de Radiação
+    const last180Min = history.filter(p => now - p.timestamp <= 180 * 60 * 1000);
+    const avg = last180Min.reduce((sum, p) => sum + p.value, 0) / last180Min.length;
+    if (avg > 5 && last180Min.length >= 18) { // Pelo menos 18 pontos em 180 min (1 por 10 min)
+      const alertKey = 'accumulation';
+      if (!lastAlertTimes[alertKey] || now - lastAlertTimes[alertKey] > 3600000) { // Cooldown 1h
+        newAlerts.push({
+          id: `${alertKey}-${now}`,
+          icon: 'leaf-outline',
+          title: 'Saúde do Solo: Exposição prolongada detectada',
+          time: new Date(now).toLocaleTimeString(),
+          color: '#F57C00',
+          bgColor: '#FFF3E0',
+          isNew: true,
+        });
+        setLastAlertTimes(prev => ({ ...prev, [alertKey]: now }));
+        setHighRadiationPeriod(true);
+      }
+    }
+
+    // 3. Gatilho de Pico de Intensidade (Escala OMS)
+    let peakAlert = null;
+    if (value >= 11) {
+      peakAlert = {
+        id: `peak-extreme-${now}`,
+        icon: 'flash-outline',
+        title: 'UV Extremo: Interrupção de fotossíntese e dano celular',
+        time: new Date(now).toLocaleTimeString(),
+        color: '#B71C1C',
+        bgColor: '#FFCDD2',
+        isNew: true,
+      };
+    } else if (value >= 8) {
+      peakAlert = {
+        id: `peak-high-${now}`,
+        icon: 'sunny-outline',
+        title: 'UV Muito Alto: Necessidade de cobertura/sombreamento',
+        time: new Date(now).toLocaleTimeString(),
+        color: '#E65100',
+        bgColor: '#FFE0B2',
+        isNew: true,
+      };
+    }
+    if (peakAlert) {
+      const alertKey = 'peak';
+      if (!lastAlertTimes[alertKey] || now - lastAlertTimes[alertKey] > 3600000 || value >= 11) {
+        newAlerts.push(peakAlert);
+        setLastAlertTimes(prev => ({ ...prev, [alertKey]: now }));
+      }
+    }
+
+    // 4. Gatilho de Recuperação
+    if (highRadiationPeriod && value < 3) {
+      if (!recoveryStartTime) {
+        setRecoveryStartTime(now);
+      } else if (now - recoveryStartTime >= 20 * 60 * 1000) {
+        const alertKey = 'recovery';
+        if (!lastAlertTimes[alertKey] || now - lastAlertTimes[alertKey] > 3600000) {
+          newAlerts.push({
+            id: `${alertKey}-${now}`,
+            icon: 'checkmark-circle-outline',
+            title: 'Condições favoráveis: Seguro para aplicação de insumos',
+            time: new Date(now).toLocaleTimeString(),
+            color: '#1976D2',
+            bgColor: '#E3F2FD',
+            isNew: true,
+          });
+          setLastAlertTimes(prev => ({ ...prev, [alertKey]: now }));
+          setHighRadiationPeriod(false);
+          setRecoveryStartTime(null);
+        }
+      }
+    } else {
+      setRecoveryStartTime(null);
+    }
+
+    // Adicionar novos alertas à lista
+    if (newAlerts.length > 0) {
+      setActiveAlerts(prev => [...newAlerts, ...prev].slice(0, 10)); // Manter apenas os 10 mais recentes
+
+      // Enviar notificações push e vibração para novos alertas
+      newAlerts.forEach(async (alert) => {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Alerta UV - Solaris Agro',
+            body: alert.title,
+            sound: 'default',
+            priority: Notifications.AndroidNotificationPriority.HIGH,
+          },
+          trigger: null, // Enviar imediatamente
+        });
+
+        // Vibração
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      });
+    }
+  }, [uvThreshold, lastAlertTimes, highRadiationPeriod, recoveryStartTime]);
+
+  // Função para avaliar dados UV e disparar alertas
+  const evaluateUVData = useCallback((value: number) => {
+    if (!alertsEnabled) return;
+
+    const now = Date.now();
+    setUvHistory(prev => {
+      const newHistory = [...prev, { value, timestamp: now }];
+      // Debounce: aguardar 30 segundos de leitura estável
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      debounceTimer.current = setTimeout(() => {
+        checkAlerts(value, newHistory, now);
+      }, 30000);
+      return newHistory.slice(-1000);
+    });
+  }, [alertsEnabled, checkAlerts]);
+
+  // Simulação de dados do sensor (substituir por dados reais)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newValue = Math.random() * 12; // Simular valor UV entre 0-12
+      evaluateUVData(newValue);
+    }, 60000); // Atualizar a cada 1 minuto
+
+    return () => clearInterval(interval);
+  }, [evaluateUVData]);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.contentWrapper}>
@@ -32,7 +227,9 @@ export default function AlertsScreen() {
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <Text style={styles.headerTitle}>Alertas</Text>
-            <View style={styles.badge}><Text style={styles.badgeText}>2</Text></View>
+            {activeAlerts.length > 0 && (
+              <View style={styles.badge}><Text style={styles.badgeText}>{activeAlerts.length}</Text></View>
+            )}
           </View>
           <Text style={styles.headerSubtitle}>Notificações e configurações</Text>
         </View>
@@ -44,29 +241,21 @@ export default function AlertsScreen() {
           <Text style={styles.sectionTitleText}>Alertas Recentes</Text>
         </View>
 
-        <AlertCard 
-          icon="warning-outline" 
-          title="UV alto às 12:30 – risco ao cultivo" 
-          time="12:30" 
-          color="#D32F2F" 
-          bgColor="#FFEBEE"
-          isNew={true}
-        />
-        <AlertCard 
-          icon="sunny-outline" 
-          title="Nível UV-B elevado detectado" 
-          time="14:15" 
-          color="#F57C00" 
-          bgColor="#FFF3E0"
-          isNew={true}
-        />
-        <AlertCard 
-          icon="information-circle-outline" 
-          title="Condições favoráveis para cultivo" 
-          time="10:00" 
-          color="#1976D2" 
-          bgColor="#E3F2FD"
-        />
+        {activeAlerts.length === 0 ? (
+          <Text style={styles.noAlertsText}>Nenhum alerta ativo no momento.</Text>
+        ) : (
+          activeAlerts.map(alert => (
+            <AlertCard
+              key={alert.id}
+              icon={alert.icon}
+              title={alert.title}
+              time={alert.time}
+              color={alert.color}
+              bgColor={alert.bgColor}
+              isNew={alert.isNew}
+            />
+          ))
+        )}
 
         {/* Configuração de Alertas */}
         <View style={styles.configCard}>
@@ -156,5 +345,6 @@ const styles = StyleSheet.create({
   uvValueText: { color: '#1E40AF', fontWeight: 'bold' },
   infoText: { fontSize: 12, color: '#64748B', marginTop: 5 },
   noteCard: { backgroundColor: '#FFF7ED', padding: 15, borderRadius: 12, marginTop: 20, borderLeftWidth: 4, borderLeftColor: '#F57C00' },
-  noteText: { fontSize: 13, color: '#9A3412', lineHeight: 18 }
+  noteText: { fontSize: 13, color: '#9A3412', lineHeight: 18 },
+  noAlertsText: { fontSize: 14, color: '#64748B', textAlign: 'center', marginVertical: 20 }
 });
