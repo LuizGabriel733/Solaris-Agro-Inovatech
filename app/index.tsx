@@ -63,7 +63,7 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            {/* Área do Gráfico - Ajustada para aceitar cliques */}
+            {/* Área do Gráfico - Ajustada para aceitar cliques no mesmo */}
             <View 
               style={{ width: '100%', marginTop: 10, zIndex: 10 }} 
               pointerEvents="box-none"
