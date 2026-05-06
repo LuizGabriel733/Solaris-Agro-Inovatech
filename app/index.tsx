@@ -47,10 +47,23 @@ export default function HomeScreen() {
             <Text style={styles.badgeText}>Atenção</Text>
           </View>
 
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Alta incidência de UV-B</Text>
-            <Text style={styles.impactValue}>Impacto no cultivo: <Text style={{color: '#E67E22'}}>Moderado</Text></Text>
-          </View>
+            {/* Área do Gráfico - Ajustada para aceitar cliques no mesmo */}
+            <View 
+              style={{ width: '100%', marginTop: 10, zIndex: 10 }} 
+              pointerEvents="box-none"
+            >
+              <View style={{ height: 1, backgroundColor: '#E0E0E0', marginVertical: 15 }} />
+              
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
+                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Feather name="map-pin" size={12} color="#7F8C8D" />
+                    <Text style={{ color: '#7F8C8D', fontSize: 11, marginLeft: 4 }}>Leitura local</Text>
+                 </View>
+                 <Text style={{ color: '#7F8C8D', fontSize: 11 }}>
+                   {/* Mostra o horário do ponto selecionado ou o atual */}
+                   Atualizado: {TODAY_DATA[selectedIndex]?.label || '16:10'}
+                 </Text>
+              </View>
 
           {/* Espaço para o Gráfico (Placeholder) */}
           <View style={styles.chartPlaceholder}>
