@@ -1,24 +1,172 @@
-import { Feather } from '@expo/vector-icons'; // Ícones inclusos no Expo
+import { Feather } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
-import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  Dimensions,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { LineChart } from 'react-native-chart-kit';
 import { BottomNav } from '../components/BottomNav';
+
+const API_URL = 'http://192.168.0.11:3000/sensor';
+const API_HISTORICO_URL = 'http://192.168.0.11:3000/sensor/historico';
+
+type SensorData = {
+  sensorConectado: boolean;
+  temperatura?: number;
+  umidade?: number;
+  uv?: number;
+  impactoCultivo?: string;
+  atualizadoEm?: string;
+};
+
+type HistoricoItem = {
+  sensorConectado: boolean;
+  temperatura?: number;
+  umidade?: number;
+  uv?: number;
+  atualizadoEm?: string;
+};
+
+type GraficoItem = {
+  horario: string;
+  valor: number;
+};
 
 export default function HomeScreen() {
   const pathname = usePathname();
 
+  const [sensor, setSensor] = useState<SensorData | null>(null);
+  const [carregando, setCarregando] = useState(true);
+  const [historico, setHistorico] = useState<HistoricoItem[]>([]);
+
+  const carregarSensor = async () => {
+    setCarregando(true);
+
+    try {
+      const responseSensor = await fetch(API_URL);
+
+      if (!responseSensor.ok) {
+        throw new Error('Erro ao buscar dados do sensor');
+      }
+
+      const dataSensor = await responseSensor.json();
+      setSensor(dataSensor);
+    } catch (error) {
+      console.log('Erro ao buscar sensor:', error);
+      setSensor({ sensorConectado: false });
+    }
+
+    try {
+      const responseHistorico = await fetch(API_HISTORICO_URL);
+
+      if (!responseHistorico.ok) {
+        throw new Error('Erro ao buscar histórico');
+      }
+
+      const dataHistorico = await responseHistorico.json();
+      setHistorico(dataHistorico.dados ?? []);
+    } catch (error) {
+      console.log('Erro ao buscar histórico:', error);
+      setHistorico([]);
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  useEffect(() => {
+    carregarSensor();
+
+    const interval = setInterval(() => {
+      carregarSensor();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const sensorConectado = sensor?.sensorConectado === true;
+  const uvAtual = sensor?.uv ?? '--';
+
+  const horariosGrafico = [
+    '06h',
+    '07h',
+    '08h',
+    '09h',
+    '10h',
+    '11h',
+    '12h',
+    '13h',
+    '14h',
+    '15h',
+    '16h',
+    '17h',
+    '18h',
+  ];
+
+  const dadosGrafico: GraficoItem[] = horariosGrafico.map((horario) => {
+    const horaNumero = Number(horario.replace('h', ''));
+
+    const registro = historico.find((item) => {
+      if (!item.atualizadoEm) return false;
+
+      const data = new Date(item.atualizadoEm);
+      return data.getHours() === horaNumero;
+    });
+
+    return {
+      horario,
+      valor: registro?.uv ?? 0,
+    };
+  });
+
+  const alertaTexto =
+    sensor?.uv !== undefined && sensor.uv >= 7
+      ? 'Radiação UV alta pode prejudicar o cultivo neste horário'
+      : 'Níveis de UV seguros no momento';
+
+  const statusUv =
+    sensor?.uv !== undefined && sensor.uv >= 7 ? 'Atenção' : 'Normal';
+
+  const impactoUv = sensor?.impactoCultivo ?? 'Indisponível';
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.contentWrapper}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
-        {/* Header Azul */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>Solaris Agro</Text>
-            <View style={styles.statusBadge}>
-              <View style={styles.dot} />
-              <Text style={styles.statusText}>Sensor conectado</Text>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.headerTitle}>Solaris Agro Ronan</Text>
+
+              <View style={styles.statusBadge}>
+                <View
+                  style={[
+                    styles.dot,
+                    {
+                      backgroundColor: carregando
+                        ? '#F1C40F'
+                        : sensorConectado
+                        ? '#2ECC71'
+                        : '#E74C3C',
+                    },
+                  ]}
+                />
+
+                <Text style={styles.statusText}>
+                  {carregando
+                    ? 'Verificando sensor...'
+                    : sensorConectado
+                    ? 'Sensor conectado'
+                    : 'Sensor desconectado'}
+                </Text>
+              </View>
             </View>
           </View>
           <TouchableOpacity style={styles.syncButton}>
@@ -47,24 +195,94 @@ export default function HomeScreen() {
             <Text style={styles.badgeText}>Atenção</Text>
           </View>
 
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Alta incidência de UV-B</Text>
-            <Text style={styles.impactValue}>Impacto no cultivo: <Text style={{color: '#E67E22'}}>Moderado</Text></Text>
+            <TouchableOpacity style={styles.syncButton} onPress={carregarSensor}>
+              <Feather name="refresh-cw" size={16} color="white" />
+              <Text style={styles.syncText}>Sincronizar</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Espaço para o Gráfico (Placeholder) */}
-          <View style={styles.chartPlaceholder}>
-             <Text style={styles.placeholderText}>[ Gráfico de Linha aqui ]</Text>
+          <View style={styles.alertCard}>
+            <Feather name="alert-triangle" size={20} color="#E67E22" />
+            <Text style={styles.alertText}>{alertaTexto}</Text>
           </View>
-        </View>
 
-        {/* Grid de Cards Menores */}
-        <View style={styles.row}>
-          <View style={[styles.smallCard, { marginRight: 10 }]}>
-            <Feather name="sun" size={20} color="#E67E22" />
-            <Text style={styles.smallCardTitle}>Exposição UV</Text>
-            <Text style={styles.smallCardValue}>4.5h</Text>
-            <Text style={styles.smallCardSub}>Alta radiação</Text>
+          <View style={styles.mainCard}>
+            <View style={styles.mainCardHeader}>
+              <Text style={styles.cardTitle}>Índice UV Atual</Text>
+              <Feather name="sun" size={24} color="#F1C40F" />
+            </View>
+
+            <Text style={styles.uvValue}>{uvAtual}</Text>
+
+            <View style={styles.badgeAtencao}>
+              <Text style={styles.badgeText}>{statusUv}</Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Análise diária de UV das 06h às 18h</Text>
+
+              <Text style={styles.impactValue}>
+                Impacto no cultivo:{' '}
+                <Text
+                  style={{
+                    color:
+                      sensor?.uv !== undefined && sensor.uv >= 7
+                        ? '#E67E22'
+                        : '#2ECC71',
+                  }}
+                >
+                  {impactoUv}
+                </Text>
+              </Text>
+            </View>
+
+            <View style={styles.chartContainer}>
+              <LineChart
+                data={{
+                  labels: dadosGrafico.map((item, index) =>
+                    index % 2 === 0 ? item.horario : ''
+                  ),
+                  datasets: [
+                    {
+                      data: dadosGrafico.map((item) => item.valor),
+                    },
+                  ],
+                }}
+                width={Dimensions.get('window').width}
+                height={190}
+                yAxisInterval={1}
+                fromZero={true}
+                segments={6}
+                formatYLabel={(y) => `${Math.round(Number(y))}`}
+                withHorizontalLabels={true}
+                withVerticalLabels={true}
+                withInnerLines={true}
+                withOuterLines={false}
+                yLabelsOffset={10}
+                xLabelsOffset={-5}
+                chartConfig={{
+                  backgroundColor: '#ffffff',
+                  backgroundGradientFrom: '#ffffff',
+                  backgroundGradientTo: '#ffffff',
+                  decimalPlaces: 0,
+                  color: () => '#F1C40F',
+                  labelColor: () => '#7F8C8D',
+                  fillShadowGradient: '#F1C40F',
+                  fillShadowGradientOpacity: 0.15,
+                  propsForDots: {
+                    r: '4',
+                  },
+                  propsForBackgroundLines: {
+                    stroke: '#EAECEE',
+                  },
+                  propsForLabels: {
+                    fontSize: 10,
+                  },
+                }}
+                bezier
+                style={styles.chart}
+              />
+            </View>
           </View>
           <View style={styles.smallCard}>
             <Feather name="trending-up" size={20} color="#00CED1" />
@@ -72,21 +290,25 @@ export default function HomeScreen() {
             <Text style={styles.smallCardValue}>6.2</Text>
             <Text style={styles.smallCardSub}>Índice UV</Text>
           </View>
-        </View>
 
-        {/* Recomendação Agrícola */}
-        <View style={styles.recommendationCard}>
-          <View style={styles.blueBar} />
-          <View>
-            <Text style={styles.recommendationTitle}>Recomendação Agrícola</Text>
-            <Text style={styles.recommendationText}>
-              Monitorar o cultivo. Considere sombreamento parcial durante picos de UV.
-            </Text>
+          <View style={styles.recommendationCard}>
+            <View style={styles.blueBar} />
+
+            <View style={{ flex: 1 }}>
+              <Text style={styles.recommendationTitle}>
+                Recomendação Agrícola
+              </Text>
+
+              <Text style={styles.recommendationText}>
+                Monitorar o cultivo entre 10h e 14h, pois normalmente é o período
+                com maior incidência de radiação UV. Considere sombreamento parcial
+                durante os picos de UV.
+              </Text>
+            </View>
           </View>
-        </View>
+        </ScrollView>
 
-      </ScrollView>
-      <BottomNav currentRoute={pathname} />
+        <BottomNav currentRoute={pathname} />
       </View>
     </SafeAreaView>
   );
