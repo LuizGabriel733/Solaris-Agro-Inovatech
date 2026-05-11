@@ -13,7 +13,6 @@ type BarUVChartProps = {
 };
 
 export function BarUVChart({ data, selectedIndex, onSelectIndex, maxDataValue, chartWidth, chartHeight }: BarUVChartProps) {
-  // [Implementacao por Arthur Junior] Grafico de barras interativo para janelas agregadas de 7 e 30 dias.
   const [measuredWidth, setMeasuredWidth] = useState<number>(0);
   const scaleMax = Math.max(12, maxDataValue);
   const ticks = [12, 9, 6, 3, 0];

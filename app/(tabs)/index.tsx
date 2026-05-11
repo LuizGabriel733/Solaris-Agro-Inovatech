@@ -15,7 +15,6 @@ export default function Index() {
   }, []);
 
   const conectarBluetooth = async () => {
-    // [Implementacao por Arthur Junior] Evita erro no servidor/web: BLE nao existe em SSR/navegador.
     if (Platform.OS === 'web') {
       setStatus('Bluetooth indisponivel no navegador (use Android/iOS com development build).');
       return;
@@ -31,7 +30,7 @@ export default function Index() {
         setStatus("Erro: " + error.message);
         return;
       }
-      if (device && device.name === "Uvision-Sensor") { // Nome do seu Arduino
+      if (device && device.name === "Uvision-Sensor") {
         manager.stopDeviceScan();
         setStatus("Conectando ao " + device.name);
         device.connect()

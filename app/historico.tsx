@@ -1,6 +1,7 @@
 import { usePathname } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { BottomNav } from '../components/BottomNav';
 import { HistoryChartCard } from '../components/history/HistoryChartCard';
 import { HistoryHeader } from '../components/history/HistoryHeader';
@@ -10,9 +11,9 @@ import { PeriodFilterSelector } from '../components/history/PeriodFilter';
 import { getDataByPeriod } from '../components/history/data';
 import { PeriodFilter } from '../components/history/types';
 import { calculateStats } from '../components/history/utils';
+import { useSensor } from './context/SensorContext';
 
 export default function HistoryScreen() {
-  // [Implementacao por Arthur Junior] Estado global da tela para periodo e ponto selecionado.
   const pathname = usePathname();
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodFilter>('today');
   const [selectedPointIndex, setSelectedPointIndex] = useState<number>(0);
@@ -21,14 +22,48 @@ export default function HistoryScreen() {
   const isDesktopLayout = width >= 860;
   const contentWidth = Math.min(width - 32, 1040);
   const chartHeight = 190;
-  const currentData = useMemo(() => getDataByPeriod(selectedPeriod), [selectedPeriod]);
+  const { historico } = useSensor();
+
+  const currentData = useMemo(() => {
+    const sensorHistory = historico
+      .map((item) => ({
+        label: new Date(item.atualizadoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        value: item.uv,
+        isCritical: item.uv >= 8,
+      }))
+      .slice(-10);
+
+    if (sensorHistory.length === 0) {
+      return getDataByPeriod(selectedPeriod);
+    }
+
+    if (selectedPeriod === 'today') {
+      return sensorHistory;
+    }
+
+    const grouped = sensorHistory.reduce<Record<string, { sum: number; count: number }>>((acc, point) => {
+      acc[point.label] = acc[point.label] || { sum: 0, count: 0 };
+      acc[point.label].sum += point.value;
+      acc[point.label].count += 1;
+      return acc;
+    }, {});
+
+    const aggregated = Object.entries(grouped).map(([label, values]) => ({
+      label,
+      value: values.sum / values.count,
+      isCritical: values.sum / values.count >= 8,
+    }));
+
+    return aggregated.length > 0 ? aggregated : getDataByPeriod(selectedPeriod);
+  }, [historico, selectedPeriod]);
+
   const maxDataValue = useMemo(() => Math.max(...currentData.map((item) => item.value), 10), [currentData]);
   const stats = useMemo(() => calculateStats(currentData), [currentData]);
 
   const selectedPoint = currentData[selectedPointIndex] ?? currentData[0];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.screen}>
         <HistoryHeader />
 
@@ -36,7 +71,6 @@ export default function HistoryScreen() {
           contentContainerStyle={[styles.scrollContent, { width: contentWidth, alignSelf: 'center' }]}
           showsVerticalScrollIndicator={false}
         >
-          {/* [Implementacao por Arthur Junior] Filtro desacoplado para evolucao de periodos/custom date range. */}
           <PeriodFilterSelector
             selectedPeriod={selectedPeriod}
             onSelectPeriod={(period) => {
@@ -45,7 +79,6 @@ export default function HistoryScreen() {
             }}
           />
 
-          {/* [Implementacao por Arthur Junior] Card de visualizacao com troca transparente entre linha e barras. */}
           <HistoryChartCard
             selectedPeriod={selectedPeriod}
             data={currentData}

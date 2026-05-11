@@ -11,6 +11,7 @@ type LineUVChartProps = {
   chartWidth: number;
   chartHeight: number;
   maxDataValue: number;
+  lineColor?: string;
 };
 
 export function LineUVChart({
@@ -20,12 +21,14 @@ export function LineUVChart({
   chartWidth,
   chartHeight,
   maxDataValue,
+  lineColor,
 }: LineUVChartProps) {
   const [measuredWidth, setMeasuredWidth] = useState<number>(0);
   const scaleMax = Math.max(12, maxDataValue);
   const ticks = [12, 9, 6, 3, 0];
   const effectiveWidth = useMemo(() => (measuredWidth > 0 ? measuredWidth : chartWidth), [chartWidth, measuredWidth]);
   const polylinePoints = createLinePath(data, effectiveWidth, chartHeight, scaleMax);
+  const chartStroke = lineColor ?? '#F1C40F';
 
   const onPlotLayout = (event: LayoutChangeEvent) => {
     const nextWidth = Math.floor(event.nativeEvent.layout.width);
@@ -35,7 +38,6 @@ export function LineUVChart({
   return (
     <View style={styles.root}>
       <View style={styles.plotRow}>
-        {/* Eixo Y - Rótulos numéricos */}
         <View style={[styles.yLabels, { height: chartHeight }]}>
           {ticks.map((tick) => (
             <Text key={`tick-${tick}`} style={styles.yLabel}>
@@ -44,13 +46,10 @@ export function LineUVChart({
           ))}
         </View>
 
-        {/* Área do Gráfico */}
         <View style={styles.plotWrap} onLayout={onPlotLayout}>
           <View style={[styles.svgWrap, { width: effectiveWidth, height: chartHeight }]}>
             
-            {/* O SVG desenha os elementos visuais */}
             <Svg width={effectiveWidth} height={chartHeight} style={styles.svgElement}>
-              {/* Linhas de Grade Horizontais */}
               {ticks.map((tick) => {
                 const y = chartHeight - (tick / scaleMax) * chartHeight;
                 return (
@@ -67,26 +66,23 @@ export function LineUVChart({
                 );
               })}
 
-              {/* Eixos de referência */}
               <Line x1={0} y1={0} x2={0} y2={chartHeight} stroke="#D1D5DB" strokeWidth={1} />
               <Line x1={0} y1={chartHeight} x2={effectiveWidth} y2={chartHeight} stroke="#D1D5DB" strokeWidth={1} />
 
-              {/* Linha do Gráfico (Amarelo Figma) */}
               <Polyline
                 points={polylinePoints}
                 fill="none"
-                stroke="#F1C40F" 
+                stroke={chartStroke}
                 strokeWidth={3}
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
 
-              {/* Pontos de dados */}
               {data.map((point, index) => {
                 const x = (index / Math.max(data.length - 1, 1)) * effectiveWidth;
                 const y = chartHeight - (point.value / scaleMax) * chartHeight;
                 const isSelected = selectedIndex === index;
-                const pointColor = point.value >= 9 ? '#E11D48' : '#F1C40F';
+                const pointColor = point.value >= 9 ? '#E11D48' : chartStroke;
 
                 return (
                   <Circle
@@ -102,7 +98,6 @@ export function LineUVChart({
               })}
             </Svg>
 
-            {/* CAMADA DE TOQUE: Fica por cima de tudo para capturar cliques */}
             <View style={[styles.pressLayer, { width: effectiveWidth, height: chartHeight }]}>
               {data.map((point, index) => (
                 <TouchableOpacity
@@ -117,7 +112,6 @@ export function LineUVChart({
         </View>
       </View>
 
-      {/* Eixo X - Rótulos de tempo */}
       <View style={styles.xLabelsRow}>
         <View style={styles.xSpacer} />
         <View style={[styles.xLabels, { width: effectiveWidth }]}>

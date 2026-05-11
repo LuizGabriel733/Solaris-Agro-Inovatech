@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
 import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { BottomNav } from '../components/BottomNav';
 import { useSettings } from './context/SettingsContext';
 
@@ -20,13 +21,16 @@ export default function SettingsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.contentWrapper}>
-        <ScrollView style={styles.scrollView}>
-          <View style={styles.header}>
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
             <Text style={styles.headerTitle}>Configurações</Text>
-            <Text style={styles.headerSubtitle}>Personalize seu aplicativo</Text>
           </View>
+          <Text style={styles.headerSubtitle}>Personalize seu aplicativo</Text>
+        </View>
+
+        <ScrollView style={styles.scrollView}>
 
           <Section title="Notificações e Alertas" icon="notifications-outline">
             <View style={styles.row}>
@@ -90,12 +94,13 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
   contentWrapper: { flex: 1 },
   scrollView: { flex: 1 },
-  header: { backgroundColor: '#4A9943', padding: 30, borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
+  header: { backgroundColor: '#4A9943', padding: 25, borderBottomLeftRadius: 25, borderBottomRightRadius: 25 },
+  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 },
   headerTitle: { color: 'white', fontSize: 24, fontWeight: 'bold' },
-  headerSubtitle: { color: '#F5F5DC', fontSize: 14 },
+  headerSubtitle: { color: '#F5F5DC', fontSize: 13, fontWeight: '500' },
   section: { backgroundColor: 'white', margin: 15, borderRadius: 15, padding: 15, elevation: 2 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, gap: 10 },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#4A9943' },
