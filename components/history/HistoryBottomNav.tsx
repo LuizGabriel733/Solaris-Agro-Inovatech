@@ -9,7 +9,7 @@ export function HistoryBottomNav() {
         <Text style={styles.navText}>Início</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.navItem}>
-        <Feather name="bar-chart-2" size={18} color="#1A5AD7" />
+        <Feather name="bar-chart-2" size={18} color="#4A9943" />
         <Text style={[styles.navText, styles.navTextActive]}>Histórico</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.navItem}>
@@ -54,6 +54,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   navTextActive: {
-    color: '#1A5AD7',
+    color: '#4A9943',
   },
 });

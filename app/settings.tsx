@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
 import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { BottomNav } from '../components/BottomNav';
 import { useSettings } from './context/SettingsContext';
 
@@ -20,13 +21,16 @@ export default function SettingsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.contentWrapper}>
-        <ScrollView style={styles.scrollView}>
-          <View style={styles.header}>
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
             <Text style={styles.headerTitle}>Configurações</Text>
-            <Text style={styles.headerSubtitle}>Personalize seu aplicativo</Text>
           </View>
+          <Text style={styles.headerSubtitle}>Personalize seu aplicativo</Text>
+        </View>
+
+        <ScrollView style={styles.scrollView}>
 
           <Section title="Notificações e Alertas" icon="notifications-outline">
             <View style={styles.row}>
@@ -37,7 +41,7 @@ export default function SettingsScreen() {
               <Switch 
                 value={settings.notifications} 
                 onValueChange={(v) => updateSettings({ notifications: v })} 
-                trackColor={{ true: '#0056D2' }}
+                trackColor={{ true: '#4A9943' }}
               />
             </View>
             <View style={[styles.row, { borderTopWidth: 1, borderColor: '#f0f0f0' }]}>
@@ -48,7 +52,7 @@ export default function SettingsScreen() {
               <Switch 
                 value={settings.alertSounds} 
                 onValueChange={(v) => updateSettings({ alertSounds: v })} 
-                trackColor={{ true: '#0056D2' }}
+                trackColor={{ true: '#4A9943' }}
               />
             </View>
           </Section>
@@ -62,7 +66,7 @@ export default function SettingsScreen() {
               <Switch 
                 value={settings.autoUpdate} 
                 onValueChange={(v) => updateSettings({ autoUpdate: v })} 
-                trackColor={{ true: '#0056D2' }}
+                trackColor={{ true: '#4A9943' }}
               />
             </View>
           </Section>
@@ -90,15 +94,16 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F0F4F8' },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
   contentWrapper: { flex: 1 },
   scrollView: { flex: 1 },
-  header: { backgroundColor: '#1A56DB', padding: 30, borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
+  header: { backgroundColor: '#4A9943', padding: 25, borderBottomLeftRadius: 25, borderBottomRightRadius: 25 },
+  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 },
   headerTitle: { color: 'white', fontSize: 24, fontWeight: 'bold' },
-  headerSubtitle: { color: '#E0E7FF', fontSize: 14 },
+  headerSubtitle: { color: '#F5F5DC', fontSize: 13, fontWeight: '500' },
   section: { backgroundColor: 'white', margin: 15, borderRadius: 15, padding: 15, elevation: 2 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, gap: 10 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1A56DB' },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#4A9943' },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
   rowLabel: { fontSize: 15, fontWeight: '500' },
   rowSub: { fontSize: 12, color: '#666' },
@@ -108,5 +113,5 @@ const styles = StyleSheet.create({
   radioGroup: { marginTop: 15 },
   groupLabel: { fontWeight: 'bold', marginBottom: 5 },
   radioOption: { flexDirection: 'row', justifyContent: 'space-between', padding: 12, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, marginTop: 8 },
-  radioActive: { borderColor: '#1A56DB', backgroundColor: '#F0F7FF' }
+  radioActive: { borderColor: '#4A9943', backgroundColor: '#F5F5DC' }
 });

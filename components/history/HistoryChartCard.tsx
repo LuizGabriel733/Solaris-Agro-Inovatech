@@ -1,6 +1,5 @@
 import { Feather } from '@expo/vector-icons';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import { BarUVChart } from './charts/BarUVChart';
 import { LineUVChart } from './charts/LineUVChart';
 import { PeriodFilter, UVPoint } from './types';
 
@@ -12,6 +11,9 @@ type HistoryChartCardProps = {
   chartWidth: number;
   chartHeight: number;
   maxDataValue: number;
+  hideHeader?: boolean;
+  hideCard?: boolean;
+  lineColor?: string;
 };
 
 export function HistoryChartCard({
@@ -22,43 +24,47 @@ export function HistoryChartCard({
   chartWidth,
   chartHeight,
   maxDataValue,
+  hideHeader = false,
+  hideCard = false,
+  lineColor,
 }: HistoryChartCardProps) {
   const selectedPoint = data[selectedPointIndex] ?? data[0];
+  const title =
+    selectedPeriod === 'today'
+      ? 'UV ao longo do dia'
+      : selectedPeriod === '7d'
+      ? 'UV médio semanal'
+      : 'UV médio mensal';
 
   return (
-    <View style={styles.chartCard}>
-      <View style={styles.chartTitleRow}>
-        <Text style={styles.cardTitle}>
-          {selectedPeriod === 'today' ? 'UV ao longo do dia' : `Índice UV médio`}
-        </Text>
-        <View style={styles.iconWrap}>
-          <Feather name="calendar" size={16} color="#6B7280" />
+    <View style={hideCard ? null : styles.chartCard}>
+      
+      {/* Só mostra o título se hideHeader for false */}
+      {!hideHeader && (
+        <View style={styles.chartTitleRow}>
+          <Text style={styles.cardTitle}>{title}</Text>
+          <View style={styles.iconWrap}>
+            <Feather name="calendar" size={16} color="#6B7280" />
+          </View>
         </View>
-      </View>
-
-      {selectedPeriod === 'today' ? (
-        <LineUVChart
-          data={data}
-          selectedIndex={selectedPointIndex}
-          onSelectIndex={onSelectPointIndex}
-          chartWidth={chartWidth}
-          chartHeight={chartHeight}
-          maxDataValue={maxDataValue}
-        />
-      ) : (
-        <BarUVChart
-          data={data}
-          selectedIndex={selectedPointIndex}
-          onSelectIndex={onSelectPointIndex}
-          maxDataValue={maxDataValue}
-          chartWidth={chartWidth}
-          chartHeight={chartHeight}
-        />
       )}
 
-      <Text style={styles.selectionCaption}>
-        {selectedPoint?.label}: {selectedPoint?.value.toFixed(1)}
-      </Text>
+      <LineUVChart
+        data={data}
+        selectedIndex={selectedPointIndex}
+        onSelectIndex={onSelectPointIndex}
+        chartWidth={chartWidth}
+        chartHeight={chartHeight}
+        maxDataValue={maxDataValue}
+        lineColor={lineColor}
+      />
+
+      {/* Na Home (Figma), geralmente não tem esse caption embaixo, você pode esconder se quiser */}
+      {!hideHeader && (
+        <Text style={styles.selectionCaption}>
+          {selectedPoint?.label}: {selectedPoint?.value.toFixed(1)}
+        </Text>
+      )}
     </View>
   );
 }

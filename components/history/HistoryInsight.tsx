@@ -63,8 +63,8 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   tipCard: {
-    backgroundColor: '#F0F7FF',
-    borderColor: '#BFDBFE',
+    backgroundColor: '#F5F5DC',
+    borderColor: '#FDB813',
     borderWidth: 1,
     borderRadius: 14,
     padding: 12,
@@ -78,14 +78,14 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: '#DBEAFE',
+    backgroundColor: '#66B032',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
   },
   tipText: {
     flex: 1,
-    color: '#1D4ED8',
+    color: '#4A9943',
     lineHeight: 18,
     fontSize: 13,
     fontWeight: '600',
@@ -123,8 +123,8 @@ const styles = StyleSheet.create({
     borderColor: '#FDA4AF',
   },
   highlightBoxNeutral: {
-    backgroundColor: '#F0FDF4',
-    borderColor: '#86EFAC',
+    backgroundColor: '#EAF6E5',
+    borderColor: '#66B032',
   },
   highlightIconWrap: {
     width: 34,
@@ -139,8 +139,8 @@ const styles = StyleSheet.create({
     borderColor: '#FDA4AF',
   },
   highlightIconNeutral: {
-    backgroundColor: '#DCFCE7',
-    borderColor: '#86EFAC',
+    backgroundColor: '#D6F1D3',
+    borderColor: '#66B032',
   },
   highlightTextWrap: {
     flex: 1,
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     color: '#9F1239',
   },
   highlightTitleNeutral: {
-    color: '#14532D',
+    color: '#4A9943',
   },
   highlightSub: {
     marginTop: 2,
@@ -164,11 +164,11 @@ const styles = StyleSheet.create({
     color: '#E11D48',
   },
   highlightSubNeutral: {
-    color: '#16A34A',
+    color: '#66B032',
   },
   highlightsFooter: {
     marginTop: 10,
-    color: '#64748B',
+    color: '#4A9943',
     fontSize: 12,
     fontWeight: '600',
   },
