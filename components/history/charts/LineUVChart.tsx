@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   svgWrap: { 
     position: 'relative', 
     alignSelf: 'center',
-    overflow: 'visible' // Garante que pontos na borda apareçam
+    overflow: 'visible' //Garante que pontos na borda apareçam
   },
   svgElement: {
     zIndex: 1,
