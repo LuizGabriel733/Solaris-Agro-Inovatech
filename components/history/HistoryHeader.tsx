@@ -1,26 +1,29 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { Platform, StyleSheet, Text } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
 export function HistoryHeader() {
   return (
-    <LinearGradient colors={['#4A9943', '#66B032']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.header}>
-      <Text style={styles.headerTitle}>Histórico de Dados</Text>
+    <View style={styles.header}>
+      <View style={styles.headerTop}>
+        <Text style={styles.headerTitle}>Histórico de Dados</Text>
+      </View>
       <Text style={styles.headerSubtitle}>Análise de padrões de radiação UV</Text>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
-    borderBottomLeftRadius: 22,
-    borderBottomRightRadius: 22,
-    paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 20,
+    backgroundColor: '#4A9943',
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 15,
     ...(Platform.OS === 'android'
-      ? { elevation: 8 }
-      : { shadowColor: '#0B2B66', shadowOpacity: 0.18, shadowRadius: 18, shadowOffset: { width: 0, height: 10 } }),
+      ? { elevation: 3 }
+      : { shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }),
   },
-  headerTitle: { color: '#FFFFFF', fontSize: 26, fontWeight: '800', letterSpacing: 0.2 },
-  headerSubtitle: { color: '#F5F5DC', fontSize: 13, marginTop: 4, fontWeight: '500' },
+  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 },
+  headerTitle: { color: '#FFFFFF', fontSize: 24, fontWeight: '800' },
+  headerSubtitle: { color: '#F5F5DC', fontSize: 13, fontWeight: '500' },
 });

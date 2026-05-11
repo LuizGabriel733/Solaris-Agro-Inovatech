@@ -1,10 +1,8 @@
 import { Feather } from '@expo/vector-icons';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import { BarUVChart } from './charts/BarUVChart';
 import { LineUVChart } from './charts/LineUVChart';
 import { PeriodFilter, UVPoint } from './types';
 
-// Adicionamos as novas props opcionais (?) aqui
 type HistoryChartCardProps = {
   selectedPeriod: PeriodFilter;
   data: UVPoint[];
@@ -13,9 +11,9 @@ type HistoryChartCardProps = {
   chartWidth: number;
   chartHeight: number;
   maxDataValue: number;
-  hideHeader?: boolean; // Opcional
-  hideCard?: boolean;   // Opcional
-  lineColor?: string;   // Opcional
+  hideHeader?: boolean;
+  hideCard?: boolean;
+  lineColor?: string;
 };
 
 export function HistoryChartCard({
@@ -26,48 +24,40 @@ export function HistoryChartCard({
   chartWidth,
   chartHeight,
   maxDataValue,
-  hideHeader = false, // Valor padrão
-  hideCard = false,   // Valor padrão
-  lineColor,          // Se vier, passamos para o gráfico
+  hideHeader = false,
+  hideCard = false,
+  lineColor,
 }: HistoryChartCardProps) {
   const selectedPoint = data[selectedPointIndex] ?? data[0];
+  const title =
+    selectedPeriod === 'today'
+      ? 'UV ao longo do dia'
+      : selectedPeriod === '7d'
+      ? 'UV médio semanal'
+      : 'UV médio mensal';
 
   return (
-    // Se hideCard for true, removemos o estilo de card (sombra e fundo branco)
     <View style={hideCard ? null : styles.chartCard}>
       
       {/* Só mostra o título se hideHeader for false */}
       {!hideHeader && (
         <View style={styles.chartTitleRow}>
-          <Text style={styles.cardTitle}>
-            {selectedPeriod === 'today' ? 'UV ao longo do dia' : `Índice UV médio`}
-          </Text>
+          <Text style={styles.cardTitle}>{title}</Text>
           <View style={styles.iconWrap}>
             <Feather name="calendar" size={16} color="#6B7280" />
           </View>
         </View>
       )}
 
-      {selectedPeriod === 'today' ? (
-        <LineUVChart
-          data={data}
-          selectedIndex={selectedPointIndex}
-          onSelectIndex={onSelectPointIndex}
-          chartWidth={chartWidth}
-          chartHeight={chartHeight}
-          maxDataValue={maxDataValue}
-          // Verifique se o LineUVChart aceita a prop 'color' ou 'stroke'
-        />
-      ) : (
-        <BarUVChart
-          data={data}
-          selectedIndex={selectedPointIndex}
-          onSelectIndex={onSelectPointIndex}
-          maxDataValue={maxDataValue}
-          chartWidth={chartWidth}
-          chartHeight={chartHeight}
-        />
-      )}
+      <LineUVChart
+        data={data}
+        selectedIndex={selectedPointIndex}
+        onSelectIndex={onSelectPointIndex}
+        chartWidth={chartWidth}
+        chartHeight={chartHeight}
+        maxDataValue={maxDataValue}
+        lineColor={lineColor}
+      />
 
       {/* Na Home (Figma), geralmente não tem esse caption embaixo, você pode esconder se quiser */}
       {!hideHeader && (
