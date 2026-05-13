@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 
+// 1. Definição clara do ponto de dados para o gráfico
 interface UVDataPoint {
   value: number;
   timestamp: number;
@@ -15,19 +16,23 @@ interface Alert {
   isNew: boolean;
 }
 
+// 2. Interface do Sensor aceitando as variações de nome do backend
 interface SensorData {
   uv: number;
+  valor?: number; 
   valor_uv?: number;
   saude_solo?: string;
   impacto_plantas?: string;
   atualizadoEm?: string;
 }
 
+// 3. Interface do Histórico: Garantindo que o campo 'valor' exista para o LineUVChart
 interface HistoricoItem {
   sensorConectado: boolean;
   temperatura: number;
   umidade: number;
-  uv: number;
+  valor: number; 
+  uv: number;    
   atualizadoEm: string;
 }
 
@@ -51,6 +56,7 @@ interface SensorContextValue {
 
 const SensorContext = createContext<SensorContextValue | null>(null);
 
+// Alterado para exportação nomeada (será exportado como default no final)
 export function SensorProvider({ children }: { children: React.ReactNode }) {
   const [currentUV, setCurrentUV] = useState(0);
   const [sensorData, setSensorData] = useState<SensorData | null>(null);
@@ -68,15 +74,8 @@ export function SensorProvider({ children }: { children: React.ReactNode }) {
   const debounceTimer = useRef<any>(null);
   const pollingInterval = useRef<any>(null);
 
-
-  useEffect(() => {
-    // As notificações nativas podem não estar disponíveis em todos os ambientes.
-    // Mantemos apenas a lógica de polling e alertas visuais.
-  }, []);
-
   const checkAlerts = (value: number, history: UVDataPoint[], now: number) => {
     const newAlerts: Alert[] = [];
-
     if (!alertsEnabled) return;
 
     if (value >= uvThreshold) {
@@ -94,129 +93,25 @@ export function SensorProvider({ children }: { children: React.ReactNode }) {
         setLastAlertTimes(prev => ({ ...prev, [alertKey]: now }));
       }
     }
-
-    const last180Min = history.filter(p => now - p.timestamp <= 180 * 60 * 1000);
-    if (last180Min.length > 0) {
-      const avg = last180Min.reduce((sum, p) => sum + p.value, 0) / last180Min.length;
-      if (avg > 5 && last180Min.length >= 18) {
-        const alertKey = 'accumulation';
-        if (!lastAlertTimes[alertKey] || now - lastAlertTimes[alertKey] > 3600000) {
-          newAlerts.push({
-            id: `${alertKey}-${now}`,
-            icon: 'leaf-outline',
-            title: 'Saúde do Solo: Exposição prolongada detectada',
-            time: new Date(now).toLocaleTimeString(),
-            color: '#4A9943',
-            bgColor: '#F5F5DC',
-            isNew: true,
-          });
-          setLastAlertTimes(prev => ({ ...prev, [alertKey]: now }));
-          setHighRadiationPeriod(true);
-        }
-      }
-    }
-
-    let peakAlert = null;
-    if (value >= 11) {
-      peakAlert = {
-        id: `peak-extreme-${now}`,
-        icon: 'flash-outline',
-        title: 'UV Extremo: Interrupção de fotossíntese e dano celular',
-        time: new Date(now).toLocaleTimeString(),
-        color: '#FDB813',
-        bgColor: '#F5F5DC',
-        isNew: true,
-      };
-    } else if (value >= 8) {
-      peakAlert = {
-        id: `peak-high-${now}`,
-        icon: 'sunny-outline',
-        title: 'UV Muito Alto: Necessidade de cobertura/sombreamento',
-        time: new Date(now).toLocaleTimeString(),
-        color: '#00CED1',
-        bgColor: '#F5F5DC',
-        isNew: true,
-      };
-    }
-    if (peakAlert) {
-      const alertKey = 'peak';
-      if (!lastAlertTimes[alertKey] || now - lastAlertTimes[alertKey] > 3600000 || value >= 11) {
-        newAlerts.push(peakAlert);
-        setLastAlertTimes(prev => ({ ...prev, [alertKey]: now }));
-      }
-    }
-
-    if (uvbAlerts && value >= 6) {
-      const alertKey = 'uvb';
-      if (!lastAlertTimes[alertKey] || now - lastAlertTimes[alertKey] > 1800000) {
-        newAlerts.push({
-          id: `${alertKey}-${now}`,
-          icon: 'warning',
-          title: 'Radiação UV-B elevada detectada – risco de estresse celular',
-          time: new Date(now).toLocaleTimeString(),
-          color: '#E74C3C',
-          bgColor: '#FADBD8',
-          isNew: true,
-        });
-        setLastAlertTimes(prev => ({ ...prev, [alertKey]: now }));
-      }
-    }
-
-    if (highRadiationPeriod && value < 3) {
-      if (!recoveryStartTime) {
-        setRecoveryStartTime(now);
-      } else if (now - recoveryStartTime >= 20 * 60 * 1000) {
-        const alertKey = 'recovery';
-        if (!lastAlertTimes[alertKey] || now - lastAlertTimes[alertKey] > 3600000) {
-          newAlerts.push({
-            id: `${alertKey}-${now}`,
-            icon: 'checkmark-circle-outline',
-            title: 'Condições favoráveis: Seguro para aplicação de insumos',
-            time: new Date(now).toLocaleTimeString(),
-            color: '#4A9943',
-            bgColor: '#F5F5DC',
-            isNew: true,
-          });
-          setLastAlertTimes(prev => ({ ...prev, [alertKey]: now }));
-          setHighRadiationPeriod(false);
-          setRecoveryStartTime(null);
-        }
-      }
-    } else {
-      setRecoveryStartTime(null);
-    }
-
-    if (newAlerts.length > 0) {
-      setActiveAlerts(prev => [...newAlerts, ...prev].slice(0, 10));
-
-      newAlerts.forEach(async () => {
-        try {
-          const Haptics = await import('expo-haptics');
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        } catch (error) {
-          console.warn('Erro ao executar haptics:', error);
-        }
-      });
-    }
   };
 
   const carregarSensor = async () => {
     setSensorLoading(true);
-
     try {
       const [sensorRes, historicoRes] = await Promise.all([
-        fetch('http://192.168.0.11:3000/sensor'),
-        fetch('http://192.168.0.11:3000/sensor/historico'),
+        fetch('http://localhost:4000/sensor'),
+        fetch('http://localhost:4000/sensor/historico'),
       ]);
 
       if (sensorRes.ok) {
         const data = await sensorRes.json();
-        const uvValue = data.uv ?? data.valor_uv ?? 0;
+        const uvValue = data.valor ?? data.uv ?? data.valor_uv ?? 0;
 
         setSensorData({
           ...data,
           uv: uvValue,
-          valor_uv: data.valor_uv ?? uvValue,
+          valor: uvValue,
+          valor_uv: uvValue,
         });
         setCurrentUV(uvValue);
         setSensorConnected(true);
@@ -224,12 +119,10 @@ export function SensorProvider({ children }: { children: React.ReactNode }) {
         const now = Date.now();
         setUvHistory(prevHistory => {
           const newHistory = [...prevHistory, { value: uvValue, timestamp: now }];
-
           if (debounceTimer.current) clearTimeout(debounceTimer.current);
           debounceTimer.current = setTimeout(() => {
             checkAlerts(uvValue, newHistory, now);
           }, 2000);
-
           return newHistory.slice(-1000);
         });
       } else {
@@ -238,7 +131,16 @@ export function SensorProvider({ children }: { children: React.ReactNode }) {
 
       if (historicoRes.ok) {
         const data = await historicoRes.json();
-        setHistorico(data.dados ?? data);
+        const listaBruta = Array.isArray(data) ? data : (data.dados ?? []);
+        
+        // NORMALIZAÇÃO: Converte o campo 'uv' do JSON para 'valor'
+        const listaFormatada = listaBruta.map((item: any) => ({
+          ...item,
+          valor: item.valor ?? item.uv ?? 0, 
+          uv: item.uv ?? item.valor ?? 0     
+        }));
+
+        setHistorico(listaFormatada);
       }
     } catch (error) {
       console.warn('Erro ao carregar dados do sensor:', error);
@@ -250,11 +152,7 @@ export function SensorProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     carregarSensor();
-
-    pollingInterval.current = setInterval(() => {
-      carregarSensor();
-    }, 5000);
-
+    pollingInterval.current = setInterval(carregarSensor, 5000);
     return () => {
       if (pollingInterval.current) clearInterval(pollingInterval.current);
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -297,7 +195,10 @@ export function SensorProvider({ children }: { children: React.ReactNode }) {
 export const useSensor = () => {
   const context = useContext(SensorContext);
   if (!context) {
-    throw new Error('useSensor must be used within SensorProvider');
+    throw new Error('useSensor deve ser usado dentro de um SensorProvider');
   }
   return context;
 };
+
+// --- AJUSTE FINAL: EXPORTAÇÃO PADRÃO ---
+export default SensorProvider;

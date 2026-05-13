@@ -62,7 +62,7 @@ export function HistoryChartCard({
       {/* Na Home (Figma), geralmente não tem esse caption embaixo, você pode esconder se quiser */}
       {!hideHeader && (
         <Text style={styles.selectionCaption}>
-          {selectedPoint?.label}: {selectedPoint?.value.toFixed(1)}
+          {selectedPoint?.label}: {selectedPoint?.valor.toFixed(1)}
         </Text>
       )}
     </View>

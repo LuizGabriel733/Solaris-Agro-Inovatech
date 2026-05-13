@@ -5,7 +5,7 @@ export function createLinePath(points: UVPoint[], chartWidth: number, chartHeigh
   return points
     .map((point, index) => {
       const x = (index / Math.max(points.length - 1, 1)) * chartWidth;
-      const y = chartHeight - (point.value / maxValue) * chartHeight;
+      const y = chartHeight - (point.valor / maxValue) * chartHeight;
       return `${x},${y}`;
     })
     .join(' ');
@@ -13,10 +13,10 @@ export function createLinePath(points: UVPoint[], chartWidth: number, chartHeigh
 
 export function calculateStats(data: UVPoint[]): HistoryStats {
   // [Implementacao por Arthur Junior] Centraliza as regras de calculo para facilitar futura integracao com API.
-  const total = data.reduce((acc, item) => acc + item.value, 0);
+  const total = data.reduce((acc, item) => acc + item.valor, 0);
   const average = total / data.length;
-  const peak = data.reduce((max, item) => (item.value > max ? item.value : max), 0);
-  const criticalCount = data.filter((item) => item.value >= 8).length;
+  const peak = data.reduce((max, item) => (item.valor > max ? item.valor : max), 0);
+  const criticalCount = data.filter((item) => item.valor >= 8).length;
 
   return {
     average: average.toFixed(1),

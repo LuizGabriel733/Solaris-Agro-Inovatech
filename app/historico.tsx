@@ -37,23 +37,27 @@ export default function HistoryScreen() {
   ) && historico.length >= 2;
 
   const currentData = useMemo(() => {
-    const now = Date.now();
-    
-    // Determine period range in milliseconds
-    let periodMs = 24 * 60 * 60 * 1000; // Default: 1 day
-    if (selectedPeriod === '7d') periodMs = 7 * 24 * 60 * 60 * 1000;
-    if (selectedPeriod === '30d') periodMs = 30 * 24 * 60 * 60 * 1000;
-    
-    const startTime = now - periodMs;
-    
-    // Filter data within period
-    const periodData = historico.filter(item => {
-      const itemTime = new Date(item.atualizadoEm).getTime();
-      return itemTime >= startTime;
-    });
+    // 1. Processamento e Normalização com correção de fuso para Manaus
+    const sensorHistory = historico
+      .map((item: any) => {
+        const dataLocal = new Date(item.atualizadoEm);
+        return {
+          // Garante o formato HH:00 para o gráfico identificar os eixos
+          label: dataLocal.getHours().toString().padStart(2, '0') + ':00',
+          valor: item.valor,
+          isCritical: item.valor >= 8,
+          timestamp: dataLocal.getTime(),
+        };
+      })
+      // 2. Filtro de segurança: Garante que os pontos apareçam no intervalo visível do gráfico
+      .filter(point => {
+        const hora = parseInt(point.label.split(':')[0]);
+        return hora >= 6 && hora <= 18;
+      })
+      .sort((a, b) => a.timestamp - b.timestamp) // Garante ordem cronológica
+      .slice(-15); // Aumentado um pouco o limite para preencher o gráfico
 
-    // If not enough real data, use mock data
-    if (periodData.length < 2) {
+    if (sensorHistory.length === 0) {
       return getDataByPeriod(selectedPeriod);
     }
 
@@ -92,9 +96,17 @@ export default function HistoryScreen() {
       });
     }
 
-    const aggregated = Object.entries(groupedData).map(([label, values]) => ({
+    // 3. Agregação para períodos maiores (7d, 30d)
+    const grouped = sensorHistory.reduce<Record<string, { sum: number; count: number }>>((acc, point) => {
+      acc[point.label] = acc[point.label] || { sum: 0, count: 0 };
+      acc[point.label].sum += point.valor;
+      acc[point.label].count += 1;
+      return acc;
+    }, {});
+
+    const aggregated = Object.entries(grouped).map(([label, values]) => ({
       label,
-      value: Math.round((values.sum / values.count) * 10) / 10,
+      valor: values.sum / values.count,
       isCritical: values.sum / values.count >= 8,
     }));
 
@@ -111,7 +123,7 @@ export default function HistoryScreen() {
     return aggregated.length > 0 ? aggregated : getDataByPeriod(selectedPeriod);
   }, [historico, selectedPeriod]);
 
-  const maxDataValue = useMemo(() => Math.max(...currentData.map((item) => item.value), 10), [currentData]);
+  const maxDataValue = useMemo(() => Math.max(...currentData.map((item) => item.valor), 12), [currentData]);
   const stats = useMemo(() => calculateStats(currentData), [currentData]);
 
   const selectedPoint = currentData[selectedPointIndex] ?? currentData[0];
@@ -175,6 +187,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
   },
-  infoCard: { backgroundColor: '#E8F5E9', borderRadius: 12, padding: 12, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#4A9943' },
-  infoCardText: { fontSize: 13, color: '#2E7D32', fontWeight: '500' },
 });

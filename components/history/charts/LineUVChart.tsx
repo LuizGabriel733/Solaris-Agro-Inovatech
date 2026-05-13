@@ -27,6 +27,8 @@ export function LineUVChart({
   const scaleMax = Math.max(12, maxDataValue);
   const ticks = [12, 9, 6, 3, 0];
   const effectiveWidth = useMemo(() => (measuredWidth > 0 ? measuredWidth : chartWidth), [chartWidth, measuredWidth]);
+  
+  // Certifique-se de que a função createLinePath também foi atualizada para ler .valor
   const polylinePoints = createLinePath(data, effectiveWidth, chartHeight, scaleMax);
   const chartStroke = lineColor ?? '#F1C40F';
 
@@ -80,9 +82,11 @@ export function LineUVChart({
 
               {data.map((point, index) => {
                 const x = (index / Math.max(data.length - 1, 1)) * effectiveWidth;
-                const y = chartHeight - (point.value / scaleMax) * chartHeight;
+                // Alterado de .value para .valor
+                const y = chartHeight - (point.valor / scaleMax) * chartHeight;
                 const isSelected = selectedIndex === index;
-                const pointColor = point.value >= 9 ? '#E11D48' : chartStroke;
+                // Alterado de .value para .valor
+                const pointColor = point.valor >= 9 ? '#E11D48' : chartStroke;
 
                 return (
                   <Circle
@@ -127,10 +131,10 @@ export function LineUVChart({
 }
 
 const styles = StyleSheet.create({
-  root: { paddingVertical: 8 },
+  root: { paddingVertical: 4 },
   plotRow: { flexDirection: 'row', alignItems: 'center' },
   yLabels: { width: 28, paddingRight: 4, justifyContent: 'space-between' },
-  yLabel: { color: '#9CA3AF', fontSize: 10, fontWeight: '600', textAlign: 'right' },
+  yLabel: { color: '#9CA3AF', fontSize: 9, fontWeight: '600', textAlign: 'right' },
   plotWrap: {
     flex: 1,
     alignItems: 'center',
@@ -140,7 +144,7 @@ const styles = StyleSheet.create({
   svgWrap: { 
     position: 'relative', 
     alignSelf: 'center',
-    overflow: 'visible' //Garante que pontos na borda apareçam
+    overflow: 'visible' 
   },
   svgElement: {
     zIndex: 1,
@@ -150,15 +154,15 @@ const styles = StyleSheet.create({
     left: 0, 
     top: 0, 
     flexDirection: 'row',
-    zIndex: 10, // Prioridade total para o toque
+    zIndex: 10, 
     backgroundColor: 'transparent',
   },
   touchPoint: { 
     flex: 1,
     height: '100%',
   },
-  xLabelsRow: { marginTop: 8, flexDirection: 'row' },
+  xLabelsRow: { marginTop: 4, flexDirection: 'row' },
   xSpacer: { width: 28 },
   xLabels: { flexDirection: 'row', justifyContent: 'space-between' },
-  xLabel: { color: '#9CA3AF', fontSize: 10, fontWeight: '600' },
+  xLabel: { color: '#9CA3AF', fontSize: 9, fontWeight: '600' },
 });
