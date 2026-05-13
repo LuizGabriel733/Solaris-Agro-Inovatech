@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BottomNav } from '../components/BottomNav';
@@ -9,6 +9,7 @@ import { useSettings } from './context/SettingsContext';
 export default function SettingsScreen() {
   const pathname = usePathname();
   const { settings, updateSettings } = useSettings();
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
   const Section = ({ title, icon, children }: any) => (
     <View style={styles.section}>
@@ -19,6 +20,10 @@ export default function SettingsScreen() {
       {children}
     </View>
   );
+
+  const toggleSection = (section: string) => {
+    setExpandedSection(expandedSection === section ? null : section);
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -72,19 +77,45 @@ export default function SettingsScreen() {
           </Section>
 
           <Section title="Informações" icon="information-circle-outline">
-            <TouchableOpacity style={styles.infoRow}>
+            <TouchableOpacity 
+              style={styles.infoRow}
+              onPress={() => toggleSection('about')}
+            >
               <Text style={styles.infoText}>Sobre o Solaris Agro</Text>
-              <Ionicons name="chevron-forward" size={20} color="#9AA7B7" />
+              <Ionicons name={expandedSection === 'about' ? 'chevron-up' : 'chevron-forward'} size={20} color="#9AA7B7" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.infoRow}>
+            {expandedSection === 'about' && (
+              <Text style={styles.expandedContent}>
+                O Solaris Agro é uma solução de monitoramento climático em tempo real. Através de um sensor de precisão conectado ao seu celular, medimos a intensidade da radiação ultravioleta (Índice UV) diretamente no cultivo, entregando dados críticos para um manejo mais inteligente e seguro do plantio.
+              </Text>
+            )}
+
+            <TouchableOpacity 
+              style={styles.infoRow}
+              onPress={() => toggleSection('terms')}
+            >
               <Text style={styles.infoText}>Termos de uso</Text>
-              <Ionicons name="chevron-forward" size={20} color="#9AA7B7" />
+              <Ionicons name={expandedSection === 'terms' ? 'chevron-up' : 'chevron-forward'} size={20} color="#9AA7B7" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.infoRow}>
+            {expandedSection === 'terms' && (
+              <Text style={styles.expandedContent}>
+                Ao utilizar o Solaris Agro, você concorda que:{'\n'}• O app fornece dados de monitoramento baseados no sensor conectado{'\n'}• As informações são ferramentas de apoio à decisão, não substituindo a consultoria agronômica técnica{'\n'}• O uso adequado do hardware (sensor) é de responsabilidade do usuário para garantir a precisão dos dados.
+              </Text>
+            )}
+
+            <TouchableOpacity 
+              style={styles.infoRow}
+              onPress={() => toggleSection('privacy')}
+            >
               <Text style={styles.infoText}>Política de privacidade</Text>
-              <Ionicons name="chevron-forward" size={20} color="#9AA7B7" />
+              <Ionicons name={expandedSection === 'privacy' ? 'chevron-up' : 'chevron-forward'} size={20} color="#9AA7B7" />
             </TouchableOpacity>
-            <Text style={styles.versionText}>Versão 1.0.0</Text>
+            {expandedSection === 'privacy' && (
+              <Text style={styles.expandedContent}>
+                Sua privacidade é importante para nós:{'\n'}• Os dados de monitoramento UV são armazenados localmente no seu dispositivo{'\n'}• Informações de sensor não são compartilhadas com terceiros sem sua permissão{'\n'}• Você tem controle total sobre quais dados são sincronizados ou compartilhados{'\n'}• Não vendemos ou utilizamos seus dados para fins comerciais.
+              </Text>
+            )}
+            <Text style={styles.versionText}>Versão 2.0.0</Text>
           </Section>
         </ScrollView>
         <BottomNav currentRoute={pathname} />
@@ -109,6 +140,7 @@ const styles = StyleSheet.create({
   rowSub: { fontSize: 12, color: '#666' },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderColor: '#EEF2F7' },
   infoText: { fontSize: 15, color: '#111827' },
+  expandedContent: { paddingVertical: 12, paddingHorizontal: 8, backgroundColor: '#F5F5DC', borderRadius: 8, marginVertical: 10, fontSize: 13, color: '#4A9943', lineHeight: 20 },
   versionText: { marginTop: 20, color: '#6B7280', fontSize: 13, textAlign: 'center' },
   radioGroup: { marginTop: 15 },
   groupLabel: { fontWeight: 'bold', marginBottom: 5 },
