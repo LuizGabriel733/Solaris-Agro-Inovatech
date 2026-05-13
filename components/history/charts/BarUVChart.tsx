@@ -58,7 +58,7 @@ export function BarUVChart({ data, selectedIndex, onSelectIndex, maxDataValue, c
             <View style={styles.barContainer}>
               {data.map((point, index) => {
                 const isSelected = selectedIndex === index;
-                const barHeight = Math.max((point.value / scaleMax) * (chartHeight - 26), 8);
+                const barHeight = Math.max((point.valor / scaleMax) * (chartHeight - 26), 8);
                 return (
                   <TouchableOpacity
                     key={`${point.label}-${index}`}
@@ -71,7 +71,7 @@ export function BarUVChart({ data, selectedIndex, onSelectIndex, maxDataValue, c
                         styles.bar,
                         {
                           height: barHeight,
-                          backgroundColor: isSelected ? '#155DFC' : point.value >= 8 ? '#FB7185' : '#7AA9FF',
+                          backgroundColor: isSelected ? '#155DFC' : point.valor >= 8 ? '#FB7185' : '#7AA9FF',
                         },
                       ]}
                     />

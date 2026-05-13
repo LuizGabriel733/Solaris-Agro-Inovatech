@@ -1,21 +1,25 @@
 import { Feather } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
+  useWindowDimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BottomNav } from '../components/BottomNav';
+import { HistoryChartCard } from '../components/history/HistoryChartCard';
 import { useSensor } from './context/SensorContext';
 
 
 
 export default function HomeScreen() {
   const pathname = usePathname();
+  const { width } = useWindowDimensions();
+  const [selectedPointIndex, setSelectedPointIndex] = useState(0);
   const {
     currentUV,
     sensorData,
@@ -62,11 +66,36 @@ export default function HomeScreen() {
     return avg.toFixed(1);
   }, [historico]);
 
+  // Preparar dados para o gráfico diário
+  const chartData = useMemo(() => {
+    const sensorHistory = historico
+      .map((item: any) => {
+        const dataLocal = new Date(item.atualizadoEm);
+        return {
+          label: dataLocal.getHours().toString().padStart(2, '0') + ':00',
+          valor: item.valor,
+          isCritical: item.valor >= 8,
+          timestamp: dataLocal.getTime(),
+        };
+      })
+      .filter(point => {
+        const hora = parseInt(point.label.split(':')[0]);
+        return hora >= 6 && hora <= 18;
+      })
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .slice(-15);
+    return sensorHistory.length > 0 ? sensorHistory : [];
+  }, [historico]);
+
+  const maxDataValue = useMemo(() => Math.max(...chartData.map((item) => item.valor), 12), [chartData]);
+  const chartWidth = Math.min(width - 64, 300);
+  const chartHeight = 120;
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <Text style={styles.headerTitle}>Índice UV Atual</Text>
+          <Text style={styles.headerTitle}>Solaris Agro</Text>
           <TouchableOpacity style={styles.syncButton} onPress={loadSensor}>
             <Feather name="refresh-cw" size={16} color="white" />
           </TouchableOpacity>
@@ -132,11 +161,33 @@ export default function HomeScreen() {
                 </Text>
               </Text>
             </View>
-
-            <View style={styles.chartPlaceholder}>
-              <Text style={styles.placeholderText}>Gráfico de UV (06h-18h)</Text>
-            </View>
           </View>
+
+          {chartData.length > 0 && (
+            <View style={styles.graphCard}>
+              <View style={styles.graphHeader}>
+                <View style={styles.graphTitleRow}>
+                  <Feather name="map-pin" size={16} color="#666" />
+                  <Text style={styles.graphTitle}>Leitura local</Text>
+                </View>
+                <Text style={styles.graphTime}>Atualizado: {new Date().getHours().toString().padStart(2, '0')}:{new Date().getMinutes().toString().padStart(2, '0')}</Text>
+              </View>
+
+              <View style={styles.graphContent}>
+                <HistoryChartCard
+                  selectedPeriod="today"
+                  data={chartData}
+                  selectedPointIndex={selectedPointIndex}
+                  onSelectPointIndex={setSelectedPointIndex}
+                  chartWidth={chartWidth}
+                  chartHeight={chartHeight}
+                  maxDataValue={maxDataValue}
+                  hideHeader={true}
+                  hideCard={true}
+                />
+              </View>
+            </View>
+          )}
 
           <View style={styles.statsRow}>
             <View style={[styles.smallCard, styles.smallCardLeft]}>
@@ -212,6 +263,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 20,
+    marginTop: 0,
   },
   row: { flexDirection: 'row', marginTop: 20 },
   smallCard: {
@@ -241,6 +293,41 @@ const styles = StyleSheet.create({
   recommendationTitle: { fontWeight: 'bold', color: '#4A9943', marginBottom: 5 },
   recommendationText: { color: '#4A9943', fontSize: 13, lineHeight: 18 },
   
+  graphCard: { 
+    backgroundColor: 'white', 
+    padding: 20, 
+    borderRadius: 16, 
+    marginBottom: 20,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+  },
+  graphHeader: {
+    marginBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  graphTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  graphTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#333',
+  },
+  graphTime: {
+    fontSize: 11,
+    color: '#999',
+  },
+  graphContent: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  chartContainer: { width: '100%', marginTop: 20, marginBottom: 20, alignItems: 'center' },
   chartPlaceholder: { width: '100%', height: 100, backgroundColor: '#F5F5DC', marginTop: 20, justifyContent: 'center', alignItems: 'center', borderRadius: 10, borderStyle: 'dashed', borderWidth: 1, borderColor: '#FDB813' },
   placeholderText: { color: '#BDC3C7', fontSize: 13 },
 });

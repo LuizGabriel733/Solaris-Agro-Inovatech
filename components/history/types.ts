@@ -2,7 +2,7 @@ export type PeriodFilter = 'today' | '7d' | '30d';
 
 export type UVPoint = {
   label: string;
-  value: number;
+  valor: number; // Alterado de value para valor para bater com o backend
   isCritical?: boolean;
 };
 

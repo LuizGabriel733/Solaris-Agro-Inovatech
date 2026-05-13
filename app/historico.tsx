@@ -25,13 +25,25 @@ export default function HistoryScreen() {
   const { historico } = useSensor();
 
   const currentData = useMemo(() => {
+    // 1. Processamento e Normalização com correção de fuso para Manaus
     const sensorHistory = historico
-      .map((item) => ({
-        label: new Date(item.atualizadoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-        value: item.uv,
-        isCritical: item.uv >= 8,
-      }))
-      .slice(-10);
+      .map((item: any) => {
+        const dataLocal = new Date(item.atualizadoEm);
+        return {
+          // Garante o formato HH:00 para o gráfico identificar os eixos
+          label: dataLocal.getHours().toString().padStart(2, '0') + ':00',
+          valor: item.valor,
+          isCritical: item.valor >= 8,
+          timestamp: dataLocal.getTime(),
+        };
+      })
+      // 2. Filtro de segurança: Garante que os pontos apareçam no intervalo visível do gráfico
+      .filter(point => {
+        const hora = parseInt(point.label.split(':')[0]);
+        return hora >= 6 && hora <= 18;
+      })
+      .sort((a, b) => a.timestamp - b.timestamp) // Garante ordem cronológica
+      .slice(-15); // Aumentado um pouco o limite para preencher o gráfico
 
     if (sensorHistory.length === 0) {
       return getDataByPeriod(selectedPeriod);
@@ -41,23 +53,24 @@ export default function HistoryScreen() {
       return sensorHistory;
     }
 
+    // 3. Agregação para períodos maiores (7d, 30d)
     const grouped = sensorHistory.reduce<Record<string, { sum: number; count: number }>>((acc, point) => {
       acc[point.label] = acc[point.label] || { sum: 0, count: 0 };
-      acc[point.label].sum += point.value;
+      acc[point.label].sum += point.valor;
       acc[point.label].count += 1;
       return acc;
     }, {});
 
     const aggregated = Object.entries(grouped).map(([label, values]) => ({
       label,
-      value: values.sum / values.count,
+      valor: values.sum / values.count,
       isCritical: values.sum / values.count >= 8,
     }));
 
     return aggregated.length > 0 ? aggregated : getDataByPeriod(selectedPeriod);
   }, [historico, selectedPeriod]);
 
-  const maxDataValue = useMemo(() => Math.max(...currentData.map((item) => item.value), 10), [currentData]);
+  const maxDataValue = useMemo(() => Math.max(...currentData.map((item) => item.valor), 12), [currentData]);
   const stats = useMemo(() => calculateStats(currentData), [currentData]);
 
   const selectedPoint = currentData[selectedPointIndex] ?? currentData[0];

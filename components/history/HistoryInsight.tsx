@@ -10,8 +10,8 @@ type HistoryInsightProps = {
 };
 
 export function HistoryInsightCard({ statsCriticalCount, selectedPeriod, selectedPoint, data }: HistoryInsightProps) {
-  const peakPoint = data.reduce((best, current) => (current.value > best.value ? current : best), data[0] ?? selectedPoint);
-  const isCritical = peakPoint.value >= 8;
+  const peakPoint = data.reduce((best, current) => (current.valor > best.valor ? current : best), data[0] ?? selectedPoint);
+  const isCritical = peakPoint.valor >= 8;
   const title = selectedPeriod === '7d' ? 'Destaques da Semana' : selectedPeriod === '30d' ? 'Destaques do Mês' : 'Dica';
 
   return (
@@ -44,7 +44,7 @@ export function HistoryInsightCard({ statsCriticalCount, selectedPeriod, selecte
                 {peakPoint.label} - {isCritical ? 'Pico de UV crítico' : 'Pico do período'}
               </Text>
               <Text style={[styles.highlightSub, isCritical ? styles.highlightSubCritical : styles.highlightSubNeutral]}>
-                Índice UV {Math.round(peakPoint.value)}{isCritical ? ' - Alto risco ao cultivo' : ' - Dentro do esperado'}
+                Índice UV {Math.round(peakPoint.valor)}{isCritical ? ' - Alto risco ao cultivo' : ' - Dentro do esperado'}
               </Text>
             </View>
           </View>
