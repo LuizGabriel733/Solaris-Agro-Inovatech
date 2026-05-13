@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { usePathname } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BottomNav } from '../components/BottomNav';
@@ -17,7 +17,9 @@ interface Alert {
   isNew: boolean;
 }
 
-const AlertCard = ({ icon, title, time, color, bgColor, isNew }: any) => (
+type AlertFilter = 'all' | 'active' | 'resolved';
+
+const AlertCard = ({ icon, title, time, color, bgColor, isNew, onResolve }: any) => (
   <View style={[styles.alertCard, { backgroundColor: bgColor }]}>
     <View style={styles.alertContent}>
       <Ionicons name={icon} size={20} color={color} />
@@ -25,13 +27,18 @@ const AlertCard = ({ icon, title, time, color, bgColor, isNew }: any) => (
         <Text style={[styles.alertTitle, { color: color }]}>{title}</Text>
         <Text style={styles.alertTime}>{time}</Text>
       </View>
-      {isNew && <View style={styles.dot} />}
+      <TouchableOpacity style={styles.resolveButton} onPress={onResolve}>
+        <Ionicons name="checkmark-circle" size={24} color={isNew ? '#999' : '#4A9943'} />
+      </TouchableOpacity>
     </View>
   </View>
 );
 
 export default function AlertsScreen() {
   const pathname = usePathname();
+  const [alertFilter, setAlertFilter] = useState<AlertFilter>('all');
+  const [resolvedAlerts, setResolvedAlerts] = useState<Set<string>>(new Set());
+
   const {
     currentUV,
     sensorData,
@@ -64,7 +71,22 @@ export default function AlertsScreen() {
 
   const handleClearAlerts = () => {
     clearAlerts();
+    setResolvedAlerts(new Set());
   };
+
+  const handleResolveAlert = (alertId: string) => {
+    setResolvedAlerts(prev => new Set(prev).add(alertId));
+  };
+
+  const filteredAlerts = activeAlerts.filter(alert => {
+    const isResolved = resolvedAlerts.has(alert.id);
+    if (alertFilter === 'active') return !isResolved;
+    if (alertFilter === 'resolved') return isResolved;
+    return true;
+  });
+
+  const activeCount = activeAlerts.filter(a => !resolvedAlerts.has(a.id)).length;
+  const resolvedCount = activeAlerts.filter(a => resolvedAlerts.has(a.id)).length;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -73,7 +95,7 @@ export default function AlertsScreen() {
           <View style={styles.headerTop}>
             <Text style={styles.headerTitle}>Alertas</Text>
             <View style={styles.headerBadgeGroup}>
-              <View style={styles.badge}><Text style={styles.badgeText}>{activeAlerts.length}</Text></View>
+              <View style={styles.badge}><Text style={styles.badgeText}>{activeCount}</Text></View>
               <TouchableOpacity style={styles.refreshButton} onPress={loadSensor}>
                 <Ionicons name="refresh" size={18} color="white" />
               </TouchableOpacity>
@@ -90,16 +112,50 @@ export default function AlertsScreen() {
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Filtro de Alertas */}
+          <View style={styles.filterContainer}>
+            <TouchableOpacity
+              style={[styles.filterButton, alertFilter === 'all' && styles.filterButtonActive]}
+              onPress={() => setAlertFilter('all')}
+            >
+              <Text style={[styles.filterButtonText, alertFilter === 'all' && styles.filterButtonTextActive]}>
+                Todos ({activeAlerts.length})
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterButton, alertFilter === 'active' && styles.filterButtonActive]}
+              onPress={() => setAlertFilter('active')}
+            >
+              <Text style={[styles.filterButtonText, alertFilter === 'active' && styles.filterButtonTextActive]}>
+                Ativos ({activeCount})
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterButton, alertFilter === 'resolved' && styles.filterButtonActive]}
+              onPress={() => setAlertFilter('resolved')}
+            >
+              <Text style={[styles.filterButtonText, alertFilter === 'resolved' && styles.filterButtonTextActive]}>
+                Resolvidos ({resolvedCount})
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Seção de Alertas Recentes */}
           <View style={styles.sectionHeader}>
             <Ionicons name="notifications-outline" size={20} color="#333" />
             <Text style={styles.sectionTitleText}>Alertas Recentes</Text>
           </View>
 
-          {activeAlerts.length === 0 ? (
-            <Text style={styles.noAlertsText}>Nenhum alerta ativo no momento.</Text>
+          {filteredAlerts.length === 0 ? (
+            <Text style={styles.noAlertsText}>
+              {alertFilter === 'all'
+                ? 'Nenhum alerta no momento.'
+                : alertFilter === 'active'
+                ? 'Nenhum alerta ativo!'
+                : 'Nenhum alerta resolvido.'}
+            </Text>
           ) : (
-            activeAlerts.map(alert => (
+            filteredAlerts.map(alert => (
               <AlertCard
                 key={alert.id}
                 icon={alert.icon}
@@ -107,14 +163,17 @@ export default function AlertsScreen() {
                 time={alert.time}
                 color={alert.color}
                 bgColor={alert.bgColor}
-                isNew={alert.isNew}
+                isNew={!resolvedAlerts.has(alert.id)}
+                onResolve={() => handleResolveAlert(alert.id)}
               />
             ))
           )}
 
-          <TouchableOpacity style={styles.clearButton} onPress={handleClearAlerts}>
-            <Text style={styles.clearButtonText}>Limpar alertas</Text>
-          </TouchableOpacity>
+          {activeAlerts.length > 0 && (
+            <TouchableOpacity style={styles.clearButton} onPress={handleClearAlerts}>
+              <Text style={styles.clearButtonText}>Limpar todos os alertas</Text>
+            </TouchableOpacity>
+          )}
 
           <View style={styles.configCard}>
             <View style={styles.sectionHeader}>
@@ -191,9 +250,12 @@ const styles = StyleSheet.create({
   sensorSummaryLabel: { color: '#DDE9D9', fontSize: 12, marginBottom: 4 },
   sensorSummaryValue: { color: 'white', fontSize: 32, fontWeight: 'bold' },
   sensorSummaryNote: { color: '#E8F6EF', fontSize: 13, marginTop: 6, lineHeight: 18 },
-  clearButton: { marginTop: 12, alignSelf: 'stretch', backgroundColor: '#4A9943', paddingVertical: 12, borderRadius: 16, alignItems: 'center' },
-  clearButtonText: { color: 'white', fontSize: 14, fontWeight: 'bold' },
   scrollContent: { padding: 20 },
+  filterContainer: { flexDirection: 'row', gap: 8, marginBottom: 20, justifyContent: 'space-between' },
+  filterButton: { flex: 1, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, backgroundColor: '#F0F0F0', borderWidth: 1, borderColor: '#E0E0E0' },
+  filterButtonActive: { backgroundColor: '#4A9943', borderColor: '#4A9943' },
+  filterButtonText: { fontSize: 12, fontWeight: '600', color: '#666', textAlign: 'center' },
+  filterButtonTextActive: { color: 'white' },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 15 },
   sectionTitleText: { fontSize: 16, fontWeight: 'bold', color: '#1E293B' },
   alertCard: { borderRadius: 12, padding: 15, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
@@ -202,6 +264,9 @@ const styles = StyleSheet.create({
   alertTitle: { fontSize: 14, fontWeight: '500' },
   alertTime: { fontSize: 12, color: '#64748B', marginTop: 2 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#66B032' },
+  resolveButton: { paddingHorizontal: 4 },
+  clearButton: { marginTop: 12, alignSelf: 'stretch', backgroundColor: '#4A9943', paddingVertical: 12, borderRadius: 16, alignItems: 'center' },
+  clearButtonText: { color: 'white', fontSize: 14, fontWeight: 'bold' },
   configCard: { backgroundColor: 'white', borderRadius: 20, padding: 20, marginTop: 10, elevation: 2 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 10 },
   label: { fontSize: 15, fontWeight: '600', color: '#1E293B' },
