@@ -1,14 +1,12 @@
+import { Feather } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BottomNav } from '../components/BottomNav';
 import { HistoryChartCard } from '../components/history/HistoryChartCard';
-import { HistoryHeader } from '../components/history/HistoryHeader';
-import { HistoryInsightCard } from '../components/history/HistoryInsight';
 import { HistoryStatsCards } from '../components/history/HistoryStats';
 import { PeriodFilterSelector } from '../components/history/PeriodFilter';
-import { getDataByPeriod } from '../components/history/data';
 import { PeriodFilter } from '../components/history/types';
 import { calculateStats } from '../components/history/utils';
 import { useSensor } from './context/SensorContext';
@@ -22,131 +20,127 @@ export default function HistoryScreen() {
   const isDesktopLayout = width >= 860;
   const contentWidth = Math.min(width - 32, 1040);
   const chartHeight = 190;
-  const { historico } = useSensor();
-
-  // Check if we have sufficient real data
-  const now = Date.now();
-  const periodMs = selectedPeriod === '7d' 
-    ? 7 * 24 * 60 * 60 * 1000 
-    : selectedPeriod === '30d' 
-    ? 30 * 24 * 60 * 60 * 1000 
-    : 24 * 60 * 60 * 1000;
-  
-  const hasRecentData = historico.some(item => 
-    (now - new Date(item.atualizadoEm).getTime()) <= periodMs
-  ) && historico.length >= 2;
+  const { historico, sensorLoading, sensorConnected, loadSensor } = useSensor();
 
   const currentData = useMemo(() => {
-    // 1. Processamento e Normalização com correção de fuso para Manaus
-    const sensorHistory = historico
-      .map((item: any) => {
-        const dataLocal = new Date(item.atualizadoEm);
-        return {
-          // Garante o formato HH:00 para o gráfico identificar os eixos
-          label: dataLocal.getHours().toString().padStart(2, '0') + ':00',
-          valor: item.valor,
-          isCritical: item.valor >= 8,
-          timestamp: dataLocal.getTime(),
-        };
-      })
-      // 2. Filtro de segurança: Garante que os pontos apareçam no intervalo visível do gráfico
-      .filter(point => {
-        const hora = parseInt(point.label.split(':')[0]);
-        return hora >= 6 && hora <= 18;
-      })
-      .sort((a, b) => a.timestamp - b.timestamp) // Garante ordem cronológica
-      .slice(-15); // Aumentado um pouco o limite para preencher o gráfico
+    // 1. Filtrar dados pelo período selecionado
+    const now = new Date();
+    const periodData = historico.filter((item) => {
+      const itemDate = new Date(item.atualizadoEm);
+      const diffMs = now.getTime() - itemDate.getTime();
+      
+      if (selectedPeriod === 'today') {
+        return diffMs <= 24 * 60 * 60 * 1000;
+      } else if (selectedPeriod === '7d') {
+        return diffMs <= 7 * 24 * 60 * 60 * 1000;
+      } else { // 30d
+        return diffMs <= 30 * 24 * 60 * 60 * 1000;
+      }
+    });
 
-    if (sensorHistory.length === 0) {
-      return getDataByPeriod(selectedPeriod);
+    // Se não tem dados no período, retorna array vazio
+    if (periodData.length === 0) {
+      return [];
     }
 
-    // Aggregate based on period
-    let groupedData: Record<string, { sum: number; count: number }> = {};
+    // 2. Agrupar dados conforme o período
+    const groupedData: Record<string, { sum: number; count: number }> = {};
+    const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-    if (selectedPeriod === 'today') {
-      // Group by hour for today
-      periodData.forEach(item => {
-        const date = new Date(item.atualizadoEm);
+    periodData.forEach((item) => {
+      const date = new Date(item.atualizadoEm);
+      const valor = item.valor ?? item.uv ?? 0;
+      let label: string;
+
+      if (selectedPeriod === 'today') {
+        // Agrupar por hora para hoje, apenas entre 6h e 18h
         const hour = date.getHours();
-        const label = `${String(hour).padStart(2, '0')}:00`;
-        if (!groupedData[label]) groupedData[label] = { sum: 0, count: 0 };
-        groupedData[label].sum += item.uv;
-        groupedData[label].count += 1;
-      });
-    } else if (selectedPeriod === '7d') {
-      // Group by day of week
-      const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-      periodData.forEach(item => {
-        const date = new Date(item.atualizadoEm);
-        const label = dayNames[date.getDay()];
-        if (!groupedData[label]) groupedData[label] = { sum: 0, count: 0 };
-        groupedData[label].sum += item.uv;
-        groupedData[label].count += 1;
-      });
-    } else {
-      // Group by day of month for 30d
-      periodData.forEach(item => {
-        const date = new Date(item.atualizadoEm);
-        const day = date.getDate();
-        const label = `D${day}`;
-        if (!groupedData[label]) groupedData[label] = { sum: 0, count: 0 };
-        groupedData[label].sum += item.uv;
-        groupedData[label].count += 1;
-      });
-    }
+        if (hour < 6 || hour > 18) return;
+        label = `${String(hour).padStart(2, '0')}:00`;
+      } else if (selectedPeriod === '7d') {
+        // Agrupar por dia da semana
+        label = dayNames[date.getDay()];
+      } else { // 30d
+        // Agrupar por dia do mês
+        label = `D${date.getDate()}`;
+      }
 
-    // 3. Agregação para períodos maiores (7d, 30d)
-    const grouped = sensorHistory.reduce<Record<string, { sum: number; count: number }>>((acc, point) => {
-      acc[point.label] = acc[point.label] || { sum: 0, count: 0 };
-      acc[point.label].sum += point.valor;
-      acc[point.label].count += 1;
-      return acc;
-    }, {});
+      if (!groupedData[label]) {
+        groupedData[label] = { sum: 0, count: 0 };
+      }
+      groupedData[label].sum += valor;
+      groupedData[label].count += 1;
+    });
 
-    const aggregated = Object.entries(grouped).map(([label, values]) => ({
+    // 3. Converter para array de dados e calcular média
+    let aggregated = Object.entries(groupedData).map(([label, values]) => ({
       label,
       valor: values.sum / values.count,
-      isCritical: values.sum / values.count >= 8,
+      isCritical: (values.sum / values.count) >= 8,
     }));
 
-    // Sort data chronologically
+    // 4. Ordenar os dados cronologicamente
     if (selectedPeriod === 'today') {
       aggregated.sort((a, b) => parseInt(a.label) - parseInt(b.label));
     } else if (selectedPeriod === '7d') {
       const dayOrder = { 'Dom': 0, 'Seg': 1, 'Ter': 2, 'Qua': 3, 'Qui': 4, 'Sex': 5, 'Sáb': 6 };
       aggregated.sort((a, b) => (dayOrder[a.label as keyof typeof dayOrder] ?? 0) - (dayOrder[b.label as keyof typeof dayOrder] ?? 0));
-    } else {
+    } else { // 30d
       aggregated.sort((a, b) => parseInt(a.label.substring(1)) - parseInt(b.label.substring(1)));
     }
 
-    return aggregated.length > 0 ? aggregated : getDataByPeriod(selectedPeriod);
+    return aggregated;
   }, [historico, selectedPeriod]);
 
-  const maxDataValue = useMemo(() => Math.max(...currentData.map((item) => item.valor), 12), [currentData]);
-  const stats = useMemo(() => calculateStats(currentData), [currentData]);
+  const maxDataValue = useMemo(() => 
+    currentData.length > 0 ? Math.max(...currentData.map((item) => item.valor), 12) : 12, 
+  [currentData]);
+  const stats = useMemo(() => 
+    currentData.length > 0 ? calculateStats(currentData) : { average: '--', peak: '--', criticalCount: 0 }, 
+  [currentData]);
 
-  const selectedPoint = currentData[selectedPointIndex] ?? currentData[0];
+  const hasData = currentData.length > 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.screen}>
-        <HistoryHeader isUsingMockData={!hasRecentData} />
+        {/* Header similar à página inicial */}
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <Text style={styles.headerTitle}>Histórico UV</Text>
+            <TouchableOpacity style={styles.syncButton} onPress={loadSensor}>
+              <Feather name="refresh-cw" size={16} color="white" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.statusBadge}>
+            <View
+              style={[
+                styles.dot,
+                {
+                  backgroundColor: sensorLoading
+                    ? '#F1C40F'
+                    : sensorConnected
+                    ? '#2ECC71'
+                    : '#E74C3C',
+                },
+              ]}
+            />
+            <Text style={styles.headerSubtitle}>
+              {sensorLoading
+                ? 'Verificando dados de histórico do sensor...'
+                : sensorConnected
+                ? historico.length > 0
+                  ? `${historico.length} registros de histórico`
+                  : 'Sensor conectado - nenhum dado de histórico registrado'
+                : 'Sensor desconectado'}
+            </Text>
+          </View>
+        </View>
 
         <ScrollView
           contentContainerStyle={[styles.scrollContent, { width: contentWidth, alignSelf: 'center' }]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Data info card */}
-          <View style={styles.infoCard}>
-            <Text style={styles.infoCardText}>
-              {hasRecentData 
-                ? `📊 ${historico.length} pontos de dados | Período: ${selectedPeriod === 'today' ? 'Últimas 24h' : selectedPeriod === '7d' ? 'Últimos 7 dias' : 'Últimos 30 dias'}`
-                : `ℹ️ Sem dados reais. Exibindo dados de exemplo para ${selectedPeriod === 'today' ? 'hoje' : selectedPeriod === '7d' ? '7 dias' : '30 dias'}`
-              }
-            </Text>
-          </View>
-
           <PeriodFilterSelector
             selectedPeriod={selectedPeriod}
             onSelectPeriod={(period) => {
@@ -155,24 +149,46 @@ export default function HistoryScreen() {
             }}
           />
 
-          <HistoryChartCard
-            selectedPeriod={selectedPeriod}
-            data={currentData}
-            selectedPointIndex={selectedPointIndex}
-            onSelectPointIndex={setSelectedPointIndex}
-            chartWidth={Math.max(contentWidth - 72, 260)}
-            chartHeight={chartHeight}
-            maxDataValue={maxDataValue}
-          />
+          {sensorLoading ? (
+            // Estado de carregamento
+            <View style={styles.placeholderCard}>
+              <Feather name="loader" size={32} color="#9CA3AF" />
+              <Text style={styles.placeholderText}>Carregando histórico...</Text>
+            </View>
+          ) : !sensorConnected ? (
+            // Sensor desconectado
+            <View style={styles.placeholderCard}>
+              <Feather name="wifi-off" size={32} color="#9CA3AF" />
+              <Text style={styles.placeholderText}>Sensor desconectado</Text>
+              <Text style={styles.placeholderSubtext}>Conecte o sensor para visualizar o histórico</Text>
+            </View>
+          ) : !hasData ? (
+            // Sem dados no período selecionado
+            <View style={styles.placeholderCard}>
+              <Feather name="calendar" size={32} color="#9CA3AF" />
+              <Text style={styles.placeholderText}>Nenhum dado de histórico para este período</Text>
+              <Text style={styles.placeholderSubtext}>
+                {selectedPeriod === 'today' ? 'Aguardando novos registros' :
+                 selectedPeriod === '7d' ? 'Tente selecionar um período menor' :
+                 'Verifique se há dados registrados'}
+              </Text>
+            </View>
+          ) : (
+            // Dados disponíveis
+            <>
+              <HistoryChartCard
+                selectedPeriod={selectedPeriod}
+                data={currentData}
+                selectedPointIndex={selectedPointIndex}
+                onSelectPointIndex={setSelectedPointIndex}
+                chartWidth={Math.max(contentWidth - 72, 260)}
+                chartHeight={chartHeight}
+                maxDataValue={maxDataValue}
+              />
 
-          <HistoryStatsCards stats={stats} isDesktopLayout={isDesktopLayout} />
-
-          <HistoryInsightCard
-            statsCriticalCount={stats.criticalCount}
-            selectedPeriod={selectedPeriod}
-            selectedPoint={selectedPoint}
-            data={currentData}
-          />
+              <HistoryStatsCards stats={stats} isDesktopLayout={isDesktopLayout} />
+            </>
+          )}
         </ScrollView>
         <BottomNav currentRoute={pathname} />
       </View>
@@ -181,10 +197,53 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F7FB' },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
   screen: { flex: 1 },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
+    paddingBottom: 100,
+  },
+  // Estilos do header similar à página inicial
+  header: { 
+    backgroundColor: '#4A9943', 
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    paddingBottom: 25,
+    borderBottomLeftRadius: 25, 
+    borderBottomRightRadius: 25
+  },
+  headerTop: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    gap: 10, 
+    marginBottom: 8 
+  },
+  headerTitle: { color: 'white', fontSize: 24, fontWeight: 'bold' },
+  headerSubtitle: { color: '#F5F5DC', fontSize: 13, fontWeight: '500' },
+  statusBadge: { flexDirection: 'row', alignItems: 'center' },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#00CED1', marginRight: 6 },
+  syncButton: { backgroundColor: 'rgba(255,255,255,0.2)', padding: 8, borderRadius: 15, alignItems: 'center' },
+  // Estilos do placeholder card
+  placeholderCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    gap: 12,
+  },
+  placeholderText: {
+    color: '#6B7280',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  placeholderSubtext: {
+    color: '#9CA3AF',
+    fontSize: 13,
+    textAlign: 'center',
   },
 });

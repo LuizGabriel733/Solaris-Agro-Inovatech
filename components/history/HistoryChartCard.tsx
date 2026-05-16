@@ -28,7 +28,9 @@ export function HistoryChartCard({
   hideCard = false,
   lineColor,
 }: HistoryChartCardProps) {
-  const selectedPoint = data[selectedPointIndex] ?? data[0];
+  // Garante que selectedPointIndex esteja dentro dos limites do array de dados
+  const validIndex = Math.max(0, Math.min(selectedPointIndex, data.length - 1));
+  const selectedPoint = data[validIndex];
   const title =
     selectedPeriod === 'today'
       ? 'UV ao longo do dia'
@@ -51,7 +53,7 @@ export function HistoryChartCard({
 
       <LineUVChart
         data={data}
-        selectedIndex={selectedPointIndex}
+        selectedIndex={validIndex}
         onSelectIndex={onSelectPointIndex}
         chartWidth={chartWidth}
         chartHeight={chartHeight}
@@ -60,9 +62,9 @@ export function HistoryChartCard({
       />
 
       {/* Na Home (Figma), geralmente não tem esse caption embaixo, você pode esconder se quiser */}
-      {!hideHeader && (
+      {!hideHeader && selectedPoint && (
         <Text style={styles.selectionCaption}>
-          {selectedPoint?.label}: {selectedPoint?.valor.toFixed(1)}
+          {selectedPoint.label}: {(selectedPoint.valor ?? 0).toFixed(1)}
         </Text>
       )}
     </View>
