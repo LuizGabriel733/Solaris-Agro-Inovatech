@@ -1,0 +1,78 @@
+diff --git a/node_modules/react-native-bluetooth-classic/android/build.gradle b/node_modules/react-native-bluetooth-classic/android/build.gradle
+index 350b872..cb8d711 100644
+--- a/node_modules/react-native-bluetooth-classic/android/build.gradle
++++ b/node_modules/react-native-bluetooth-classic/android/build.gradle
+@@ -13,12 +13,12 @@ buildscript {
+ apply plugin: 'com.android.library'
+ 
+ android {
+-    compileSdkVersion 28
+-    buildToolsVersion "28.0.3"
++    compileSdkVersion 36
++    buildToolsVersion "36.0.0"
+ 
+     defaultConfig {
+         minSdkVersion 16
+-        targetSdkVersion 28
++        targetSdkVersion 36
+         versionCode 1
+         versionName "1.0"
+     }
+diff --git a/node_modules/react-native-bluetooth-classic/android/src/main/java/kjd/reactnative/bluetooth/RNBluetoothClassicModule.java b/node_modules/react-native-bluetooth-classic/android/src/main/java/kjd/reactnative/bluetooth/RNBluetoothClassicModule.java
+index b63b959..9db71a1 100644
+--- a/node_modules/react-native-bluetooth-classic/android/src/main/java/kjd/reactnative/bluetooth/RNBluetoothClassicModule.java
++++ b/node_modules/react-native-bluetooth-classic/android/src/main/java/kjd/reactnative/bluetooth/RNBluetoothClassicModule.java
+@@ -222,11 +222,6 @@ public class RNBluetoothClassicModule
+     return "RNBluetoothClassic";
+   }
+ 
+-  @Override
+-  public boolean hasConstants() {
+-    return true;
+-  }
+-
+   @Nullable
+   @Override
+   public Map<String, Object> getConstants() {
+@@ -249,7 +244,7 @@ public class RNBluetoothClassicModule
+    * @param data the intent which triggered this result
+    */
+   @Override
+-  public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
++  public void onActivityResult(Activity activity, int requestCode, int resultCode, @Nullable Intent data) {
+     if (D) Log.d(TAG, "On activity result request: " + requestCode + ", result: " + resultCode);
+ 
+     if (requestCode == BluetoothRequest.ENABLE_BLUETOOTH.code) {
+diff --git a/node_modules/react-native-bluetooth-classic/src/index.js b/node_modules/react-native-bluetooth-classic/src/index.js
+index 8946413..7dd8d2e 100644
+--- a/node_modules/react-native-bluetooth-classic/src/index.js
++++ b/node_modules/react-native-bluetooth-classic/src/index.js
+@@ -23,8 +23,11 @@ class RNBluetoothClassic extends NativeEventEmitter {
+     super(nativeModule)
+ 
+     // Set the _nativeModule for Android, which isn't actually done in NativeEventEmitter
+-    if (Platform.OS === 'android') 
++    const hasAddListener = !!nativeModule && typeof nativeModule.addListener === 'function';
++    const hasRemoveListeners = !!nativeModule && typeof nativeModule.removeListeners === 'function';
++    if (Platform.OS === 'android' && hasAddListener && hasRemoveListeners) {
+       this._nativeModule = nativeModule;
++    }
+ 
+     this.setAdapterName = nativeModule.setAdapterName;
+     this.requestEnable = nativeModule.requestEnable;
+@@ -94,8 +97,13 @@ class RNBluetoothClassic extends NativeEventEmitter {
+    * the RNBluetoothClassicModule needs to know that it should continue to send data.
+    */
+   applyReadListeners = () => {
+-    let count = this.listeners(BTEvents.READ).length;
+-    this._nativeModule.setReadObserving(0 < count);  
++    let count = 0;
++    if (typeof this.listenerCount === 'function') {
++      count = this.listenerCount(BTEvents.READ);
++    }
++    if (this._nativeModule && typeof this._nativeModule.setReadObserving === 'function') {
++      this._nativeModule.setReadObserving(0 < count);
++    }
+   }
+ 
+   /**

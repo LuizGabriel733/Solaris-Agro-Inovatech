@@ -1,18 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import type { BleManager as BleManagerType } from 'react-native-ble-plx';
+import { BluetoothClassicService } from '../bluetooth/BluetoothClassicService';
 
 export default function Index() {
-  const [status, setStatus] = useState("Aguardando...");
-  const managerRef = useRef<BleManagerType | null>(null);
+  const [status, setStatus] = useState('Aguardando...');
+  const bluetoothServiceRef = useRef<BluetoothClassicService | null>(null);
 
-  useEffect(() => {
-    return () => {
-      const manager = managerRef.current as { destroy?: () => void } | null;
-      manager?.destroy?.();
-      managerRef.current = null;
-    };
-  }, []);
+  const getBluetoothService = () => {
+    if (!bluetoothServiceRef.current) {
+      bluetoothServiceRef.current = new BluetoothClassicService();
+    }
+    return bluetoothServiceRef.current;
+  };
 
   const conectarBluetooth = async () => {
     if (Platform.OS === 'web') {
@@ -20,24 +19,26 @@ export default function Index() {
       return;
     }
 
-    setStatus("Buscando Arduino...");
-    const { BleManager } = await import('react-native-ble-plx');
-    const manager = managerRef.current ?? new BleManager();
-    managerRef.current = manager;
+    const service = getBluetoothService();
+    setStatus('Preparando Bluetooth...');
 
-    manager.startDeviceScan(null, null, (error, device) => {
-      if (error) {
-        setStatus("Erro: " + error.message);
+    try {
+      const permissionsOk = await service.requestPermissions();
+      if (!permissionsOk) {
+        setStatus('Permissões Bluetooth não concedidas');
         return;
       }
-      if (device && device.name === "Uvision-Sensor") {
-        manager.stopDeviceScan();
-        setStatus("Conectando ao " + device.name);
-        device.connect()
-          .then((d) => d.discoverAllServicesAndCharacteristics())
-          .then(() => setStatus("Conectado com Sucesso!"));
-      }
-    });
+
+      setStatus('Conectando ao dispositivo emparelhado...');
+      const device = await service.connect();
+      setStatus(`Conectado a ${device.name ?? device.address}`);
+
+      await service.listenForData((text) => {
+        setStatus(`UV: ${text}`);
+      });
+    } catch (error: any) {
+      setStatus('Erro ao conectar: ' + (error?.message ?? String(error)));
+    }
   };
 
   return (

@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "solarisagroapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
@@ -18,12 +17,13 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.BLUETOOTH",
         "android.permission.BLUETOOTH_ADMIN",
-        "android.permission.BLUETOOTH_CONNECT"
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "package": "com.equipesolarisagro.sensoruv"
     },
@@ -46,17 +46,6 @@
           }
         }
       ],
-      [
-        "react-native-ble-plx",
-        {
-          "isBackgroundEnabled": false,
-          "modes": [
-            "peripheral",
-            "central"
-          ],
-          "bluetoothAlwaysPermission": "O app precisa de Bluetooth para ler o sensor UV."
-        }
-      ],
       "expo-notifications"
     ],
     "experiments": {
@@ -66,9 +55,8 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "f72c12ef-8954-4fdb-9188-2881683395fa"
+        "projectId": "f2214932-dd4d-4b2e-8e01-5ce0363c1c8d"
       }
-    },
-    "owner": "lui733"
+    }
   }
 }

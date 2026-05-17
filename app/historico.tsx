@@ -24,11 +24,7 @@ export default function HistoryScreen() {
   const chartHeight = 190;
   const { historico } = useSensor();
 
-<<<<<<< HEAD
   // Verificação de dados recentes
-=======
-  // Check if we have sufficient real data
->>>>>>> 84daab91cc078ee20c8a1befa72c392bbe741bc7
   const now = Date.now();
   const periodMs = selectedPeriod === '7d' 
     ? 7 * 24 * 60 * 60 * 1000 
@@ -57,12 +53,7 @@ export default function HistoryScreen() {
         const hora = parseInt(point.label.split(':')[0]);
         return hora >= 6 && hora <= 18;
       })
-<<<<<<< HEAD
       .sort((a, b) => a.timestamp - b.timestamp);
-=======
-      .sort((a, b) => a.timestamp - b.timestamp) // Garante ordem cronológica
-      .slice(-15); // Aumentado um pouco o limite para preencher o gráfico
->>>>>>> 84daab91cc078ee20c8a1befa72c392bbe741bc7
 
     if (sensorHistory.length === 0) {
       return getDataByPeriod(selectedPeriod);
@@ -72,11 +63,7 @@ export default function HistoryScreen() {
       return sensorHistory.slice(-15);
     }
 
-<<<<<<< HEAD
     // 2. Agregação para 7d e 30d (Usando a variável correta: grouped)
-=======
-    // 3. Agregação para períodos maiores (7d, 30d)
->>>>>>> 84daab91cc078ee20c8a1befa72c392bbe741bc7
     const grouped = sensorHistory.reduce<Record<string, { sum: number; count: number }>>((acc, point) => {
       acc[point.label] = acc[point.label] || { sum: 0, count: 0 };
       acc[point.label].sum += point.valor;
@@ -87,11 +74,7 @@ export default function HistoryScreen() {
     const aggregated = Object.entries(grouped).map(([label, values]) => ({
       label,
       valor: values.sum / values.count,
-<<<<<<< HEAD
       isCritical: (values.sum / values.count) >= 8,
-=======
-      isCritical: values.sum / values.count >= 8,
->>>>>>> 84daab91cc078ee20c8a1befa72c392bbe741bc7
     }));
 
     // 3. Ordenação Cronológica Final
@@ -169,10 +152,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
   },
-<<<<<<< HEAD
   infoCard: { backgroundColor: '#E8F5E9', borderRadius: 12, padding: 12, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#4A9943' },
   infoCardText: { fontSize: 13, color: '#2E7D32', fontWeight: '500' },
 });
-=======
-});
->>>>>>> 84daab91cc078ee20c8a1befa72c392bbe741bc7
